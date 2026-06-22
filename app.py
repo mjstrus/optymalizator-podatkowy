@@ -119,6 +119,13 @@ with st.sidebar:
                 st.warning(o)
         dochod_malzonka = st.number_input("Dochód małżonka (zł)", min_value=0.0,
                                           step=10_000.0, key="dochod_malzonka")
+        zus_malzonka = st.number_input(
+            "ZUS społeczny małżonka — rocznie (zł)", min_value=0.0,
+            value=0.0, step=1_000.0,
+            help="Pomniejsza dochód małżonka do wspólnego rozliczenia. "
+                 "Zostaw 0, jeśli małżonek nie prowadzi działalności (np. etat).")
+        # Dochód małżonka do silnika = dochód po odliczeniu jego składek społecznych.
+        dochod_malzonka = max(0.0, dochod_malzonka - zus_malzonka)
     jednoosobowa = st.checkbox("Jednoosobowa sp. z o.o.")
     art176 = st.checkbox("Ścieżka art. 176 KSH")
 
