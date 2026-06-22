@@ -14,6 +14,15 @@ from dotenv import load_dotenv
 _ENV_PATH = Path(__file__).resolve().parent / ".env"
 load_dotenv(_ENV_PATH, override=True)
 load_dotenv(override=False)
+
+# Streamlit Community Cloud: klucz podawany w Settings → Secrets (st.secrets).
+if not os.environ.get("ANTHROPIC_API_KEY"):
+    try:
+        if "ANTHROPIC_API_KEY" in st.secrets:
+            os.environ["ANTHROPIC_API_KEY"] = str(st.secrets["ANTHROPIC_API_KEY"])
+    except Exception:
+        pass  # brak pliku secrets lokalnie — to normalne
+
 _KLUCZ_OK = bool(os.environ.get("ANTHROPIC_API_KEY"))
 
 from optymalizator.engine import run_optimization
