@@ -3,10 +3,13 @@
 Uruchomienie:  streamlit run app.py
 Narzędzie bezstanowe: liczy „tu i teraz", nie zapisuje danych klientów.
 """
+from pathlib import Path
+
 import streamlit as st
 from dotenv import load_dotenv
 
-load_dotenv()  # wczytaj ANTHROPIC_API_KEY z pliku .env (jeśli istnieje)
+# Wczytaj .env z katalogu app.py (niezależnie od bieżącego katalogu roboczego).
+load_dotenv(Path(__file__).resolve().parent / ".env")
 
 from optymalizator.engine import run_optimization
 from optymalizator.models import DaneKlienta, FormaZUS, Ulgi
