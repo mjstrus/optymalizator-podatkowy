@@ -80,6 +80,12 @@ ULGA_4PLUS_LIMIT = 85_528
 # IKZE — roczny limit wpłaty dla prowadzących działalność (1,8× przeciętne).
 IKZE_LIMIT_JDG = round(1.8 * PRZECIETNE_WYNAGRODZENIE, 2)   # 16 956,00
 
+# --- Danina solidarnościowa -------------------------------------------------
+# 4% od nadwyżki dochodu ponad 1 mln zł. Dotyczy skali i liniowego;
+# NIE dotyczy ryczałtu ani dywidendy ze sp. z o.o.
+DANINA_PROG = 1_000_000
+DANINA_STAWKA = 0.04
+
 # --- Negative screening -----------------------------------------------------
 RYCZALT_LIMIT_EUR = 2_000_000                # limit przychodu dla ryczałtu (EUR)
 EUR_PLN = 4.30                               # kurs orientacyjny do limitu

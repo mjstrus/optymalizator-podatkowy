@@ -29,6 +29,7 @@ Podczas sesji doradczych (listopad–grudzień, pilotaż wrzesień 2026) doradca
 - R9. Walidacja danych wejściowych: przy braku przychodu / kosztów / kodu PKWiU lub charakteru usług — zatrzymanie i konkretna ankieta uzupełniająca.
 - ~~R10. „Profil klienta": zapis i odczyt parametrów klienta (Supabase).~~ **USUNIĘTE ze scope'u (2026-06-22):** narzędzie działa „tu i teraz", bez trwałego zapisu danych klientów. Brak Supabase i jakiejkolwiek persystencji — dane wprowadzane na sesji, wynik to ekran + PDF.
 - R11. Brandowany PDF (styl Abacus, gradient navy `#0d1b2a → #1b2d45`) jako deliverable sesji.
+- R12. Danina solidarnościowa: 4% od nadwyżki dochodu ponad 1 000 000 zł — naliczana dla skali i liniowego; **wyłączona dla ryczałtu i dywidendy sp. z o.o.** (dodane 2026-06-22). Wpływa na ranking przy wysokich dochodach.
 
 ## Granice scope'u
 

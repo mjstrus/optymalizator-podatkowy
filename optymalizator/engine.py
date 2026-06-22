@@ -85,6 +85,12 @@ def _podatek_skala(dane: DaneKlienta, podstawa: float) -> float:
 
 
 # --- Cztery formy -----------------------------------------------------------
+def _danina(dochod: float) -> float:
+    """Danina solidarnościowa: 4% od nadwyżki dochodu ponad 1 mln zł.
+    Dotyczy skali i liniowego; nie dotyczy ryczałtu ani dywidendy sp. z o.o."""
+    return P.DANINA_STAWKA * max(0.0, dochod - P.DANINA_PROG)
+
+
 def _odliczenia_dochodowe(dane: DaneKlienta) -> float:
     """Odliczenia od podstawy opodatkowania wspólne dla skali i liniowego:
     IKZE (do limitu) oraz zwolnienie PIT-0 dla rodzin 4+."""
@@ -102,6 +108,7 @@ def _oblicz_skala(dane: DaneKlienta, zus: float) -> WynikFormy:
     # Ulga prorodzinna to odliczenie od podatku; nadwyżka zwracana (do wysokości
     # składek) — dopuszczamy ujemny "podatek" (zwrot) i odejmujemy go w netto.
     podatek = podatek - _ulga_dzieci(dane, podatek, zus, zdrowotna)
+    podatek += _danina(D_zdrow)
     netto = dane.przychod - dane.koszty - zus - zdrowotna - podatek
     return WynikFormy("Skala", round(podatek, 2), round(zdrowotna, 2),
                       round(zus, 2), round(netto, 2))
@@ -114,6 +121,7 @@ def _oblicz_liniowy(dane: DaneKlienta, zus: float) -> WynikFormy:
     podstawa = D_zdrow - odliczenie - _odliczenia_dochodowe(dane)
     stawka = 0.05 if dane.ulgi.ip_box else P.LINIOWY_STAWKA
     podatek = max(0.0, stawka * podstawa)
+    podatek += _danina(D_zdrow)
     netto = dane.przychod - dane.koszty - zus - zdrowotna - podatek
     return WynikFormy("Liniowy", round(podatek, 2), round(zdrowotna, 2),
                       round(zus, 2), round(netto, 2))
