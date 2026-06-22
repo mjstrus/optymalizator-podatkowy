@@ -3,13 +3,18 @@
 Uruchomienie:  streamlit run app.py
 Narzędzie bezstanowe: liczy „tu i teraz", nie zapisuje danych klientów.
 """
+import os
 from pathlib import Path
 
 import streamlit as st
 from dotenv import load_dotenv
 
-# Wczytaj .env z katalogu app.py (niezależnie od bieżącego katalogu roboczego).
-load_dotenv(Path(__file__).resolve().parent / ".env")
+# Wczytaj .env z katalogu app.py (niezależnie od bieżącego katalogu roboczego),
+# a dla pewności także standardowym przeszukiwaniem od bieżącego katalogu.
+_ENV_PATH = Path(__file__).resolve().parent / ".env"
+load_dotenv(_ENV_PATH, override=True)
+load_dotenv(override=False)
+_KLUCZ_OK = bool(os.environ.get("ANTHROPIC_API_KEY"))
 
 from optymalizator.engine import run_optimization
 from optymalizator.models import DaneKlienta, FormaZUS, Ulgi
@@ -101,6 +106,13 @@ with st.sidebar:
                            step=1_000.0)
 
     licz = st.button("Policz formy", type="primary", use_container_width=True)
+
+    st.divider()
+    if _KLUCZ_OK:
+        st.caption("🔑 Klucz API: wykryty — narracja AI aktywna.")
+    else:
+        st.caption(f"🔑 Klucz API: BRAK. Szukano w: {_ENV_PATH} "
+                   f"(istnieje: {_ENV_PATH.exists()}).")
 
 # --- Walidacja R9 + obliczenia ----------------------------------------------
 braki = UI.sprawdz_braki(przychod, koszty, charakter)
