@@ -102,8 +102,23 @@ with st.sidebar:
     wspolne = st.checkbox("Wspólne rozliczenie z małżonkiem")
     dochod_malzonka = 0.0
     if wspolne:
+        st.session_state.setdefault("dochod_malzonka", 0.0)
+        plik_m = st.file_uploader("Import KPiR małżonka (PDF, opcjonalnie)",
+                                  type=["pdf"], key="kpir_malzonek")
+        if plik_m is not None and \
+                st.session_state.get("_kpir_malzonek_plik") != plik_m.name:
+            wm = parsuj_kpir(plik_m.getvalue())
+            st.session_state["_kpir_malzonek_plik"] = plik_m.name
+            dochod_m = wm.dochod
+            if dochod_m is None and None not in (wm.przychod, wm.koszty):
+                dochod_m = wm.przychod - wm.koszty
+            if dochod_m is not None:
+                st.session_state["dochod_malzonka"] = float(dochod_m)
+                st.success("Wczytano dochód małżonka z KPiR. Zweryfikuj poniżej.")
+            for o in wm.ostrzezenia:
+                st.warning(o)
         dochod_malzonka = st.number_input("Dochód małżonka (zł)", min_value=0.0,
-                                          value=0.0, step=10_000.0)
+                                          step=10_000.0, key="dochod_malzonka")
     jednoosobowa = st.checkbox("Jednoosobowa sp. z o.o.")
     art176 = st.checkbox("Ścieżka art. 176 KSH")
 
