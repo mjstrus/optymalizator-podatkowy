@@ -11,6 +11,7 @@ venv/
 # Sekrety / środowisko
 .env
 .env.*
+!.env.example
 
 # Artefakty
 przyklad_raport.pdf
