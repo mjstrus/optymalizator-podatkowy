@@ -35,7 +35,8 @@ Podczas sesji doradczych (listopad–grudzień, pilotaż wrzesień 2026) doradca
 - **Estoński CIT i ewentualna piąta forma — poza MVP.** Dopracowany prompt obejmuje 4 formy; wcześniejszy stress-test narzędzia wspominał o 5 formach i trzech rankingach. Do potwierdzenia przed implementacją (zob. Otwarte pytania). MVP planowany pod 4 formy.
 - Brak multi-user / auth — narzędzie jednostanowiskowe na sesje doradcze.
 - **Brak jakiejkolwiek persystencji danych (decyzja 2026-06-22).** Bez bazy, bez Supabase, bez „Profilu klienta" — narzędzie weryfikuje dane wprowadzone na sesji i zwraca wynik + PDF. Eliminuje to ryzyka RODO/przechowywania danych klientów.
-- Brak automatycznej integracji z Enova365 / Frappe CRM — dane wprowadzane ręcznie. Integracja to osobny etap.
+- Brak automatycznej integracji z Enova365 / Frappe CRM — dane wprowadzane ręcznie lub importowane z PDF KPiR (Unit 7). Integracja API to osobny etap.
+- **Import KPiR tylko z PDF tekstowych** (eksport z programu księgowego). Skany wymagałyby OCR — poza scope.
 - Brak automatycznego pobierania stawki ryczałtu z PKWiU — doradca wskazuje stawkę (z podpowiedzią).
 - Brak rozliczeń wstecznych / korekt — narzędzie liczy prognozę na rok 2026.
 
@@ -263,6 +264,39 @@ Decyzja: narzędzie nie zapisuje danych — weryfikacja „tu i teraz" + PDF. Br
 
 **Weryfikacja:**
 - PDF otwiera się, zawiera komplet sekcji i branding.
+
+---
+
+- [x] **Unit 7: Import KPiR z PDF** (dodany 2026-06-22 na życzenie użytkownika)
+
+**Cel:** Wczytać roczne podsumowanie KPiR (PDF) i automatycznie wypełnić przychód i koszty, by doradca nie przepisywał liczb ręcznie na sesji.
+
+**Wymagania:** wsparcie R9 (przyspiesza wprowadzanie danych, ale doradca potwierdza)
+
+**Zależności:** Unit 5
+
+**Pliki:**
+- Stwórz: `optymalizator/kpir_import.py` (`parsuj_kpir(zrodlo) -> ImportKPiR`)
+- Test: `tests/test_kpir_import.py` (na realnej próbce, `skipif` gdy brak pliku)
+
+**Podejście:**
+- `pdfplumber` czyta tekst PDF; parsujemy **etykietowany blok podsumowania** (przychód, koszty z uwzgl. różnicy reman., dochód, wydatki, zakupy, remanent), NIE rozbicie miesięczne (siatka miesięczna bywa nieczytelna przy ekstrakcji).
+- Dopasowanie **tolerancyjne** (regex na fragmentach) — odporne na zniekształcenia fontów (np. „Przychód"→„Przvch?d") i różne układy programów księgowych.
+- Mieszane separatory (`0,00` / `0.00`, spacja jako tysiące) obsłużone w `kwota_pl`.
+- **Kontrola spójności księgowej**: przychód − koszty = dochód → flaga `spojnosc`; rozjazd → ostrzeżenie.
+- **Parser proponuje, doradca potwierdza** — wartości trafiają do pól formularza (`st.session_state`) do edycji przed liczeniem; brak cichego wpływu na rekomendację.
+- Graceful: złe wejście / skan (brak tekstu) → `ostrzezenia`, bez wyjątku; ręczne wprowadzanie nadal działa.
+
+**Scenariusze testowe:**
+- Realna próbka → przychód 5 207 580,87; koszty (z reman.) 4 635 139,45; dochód 572 441,42.
+- Kontrola spójności = True, brak ostrzeżeń.
+- Pełny odczyt podsumowania (wydatki, zakupy, koszty uz. przychodu, różnica remanentowa).
+- Wejście niebędące PDF → ImportKPiR z ostrzeżeniem, bez crasha.
+
+**Weryfikacja:**
+- Import wypełnia pola; doradca widzi liczby i status spójności; może je nadpisać.
+
+**Uwaga o scope:** „pełny odczyt" dotyczy etykietowanego podsumowania (wszystkie sumy roczne) — rozbicie miesięcznych pozycji nie jest wiarygodnie odzyskiwalne z tego typu eksportu i nie jest potrzebne optymalizatorowi (liczą się sumy roczne).
 
 ## Wpływ systemowy
 

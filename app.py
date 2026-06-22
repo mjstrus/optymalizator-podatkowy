@@ -11,6 +11,7 @@ from optymalizator import ui_components as UI
 from optymalizator import params_2026 as P
 from optymalizator.narracja import generuj_narracje
 from optymalizator.pdf_export import generuj_pdf
+from optymalizator.kpir_import import parsuj_kpir
 
 st.set_page_config(page_title="Optymalizator Podatkowy 2026 — Abacus",
                    page_icon="📊", layout="wide")
@@ -30,10 +31,29 @@ st.markdown(
 # --- Formularz wejściowy ----------------------------------------------------
 with st.sidebar:
     st.header("Dane klienta")
+
+    st.session_state.setdefault("przychod", 300_000.0)
+    st.session_state.setdefault("koszty", 50_000.0)
+
+    # Import z KPiR (PDF) — wypełnia przychód i koszty do POTWIERDZENIA.
+    plik = st.file_uploader("Import z KPiR (PDF)", type=["pdf"])
+    if plik is not None and st.session_state.get("_kpir_plik") != plik.name:
+        wczytany = parsuj_kpir(plik.getvalue())
+        st.session_state["_kpir_plik"] = plik.name
+        if wczytany.przychod is not None:
+            st.session_state["przychod"] = float(wczytany.przychod)
+        if wczytany.koszty is not None:
+            st.session_state["koszty"] = float(wczytany.koszty)
+        if wczytany.przychod is not None and wczytany.koszty is not None:
+            znak = "✅ spójne księgowo" if wczytany.spojnosc else "⚠️ sprawdź ręcznie"
+            st.success(f"Wczytano z KPiR ({znak}). Zweryfikuj poniższe pola.")
+        for o in wczytany.ostrzezenia:
+            st.warning(o)
+
     przychod = st.number_input("Roczny przychód (zł)", min_value=0.0,
-                               value=300_000.0, step=10_000.0)
+                               step=10_000.0, key="przychod")
     koszty = st.number_input("Roczne koszty (zł)", min_value=0.0,
-                             value=50_000.0, step=5_000.0)
+                             step=5_000.0, key="koszty")
 
     charakter = st.text_input("Charakter usług / PKWiU", value="usługi IT")
     stawka_ryczaltu = st.number_input("Stawka ryczałtu", min_value=0.0,
