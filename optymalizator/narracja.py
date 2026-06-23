@@ -67,9 +67,12 @@ def _placeholder(powod: str) -> Narracja:
     )
 
 
-def generuj_narracje(wynik: WynikOptymalizacji, klient=None) -> Narracja:
+def generuj_narracje(wynik: WynikOptymalizacji, klient=None,
+                     kontekst: str = "") -> Narracja:
     """Zwróć narrację dla gotowego wyniku. `klient` (np. anthropic.Anthropic)
-    można wstrzyknąć — ułatwia testy i pozwala współdzielić instancję."""
+    można wstrzyknąć — ułatwia testy. `kontekst` to dodatkowe informacje o
+    kliencie (specyfika, wymagania, oczekiwania) — model dopasuje narrację,
+    ale NADAL nie liczy."""
     if klient is None:
         if not os.environ.get("ANTHROPIC_API_KEY"):
             return _placeholder("Brak klucza ANTHROPIC_API_KEY — narracja pominięta.")
@@ -80,17 +83,18 @@ def generuj_narracje(wynik: WynikOptymalizacji, klient=None) -> Narracja:
             return _placeholder(f"Nie udało się zainicjować klienta API: {e}")
 
     dane = _dane_dla_modelu(wynik)
+    tresc = ("Oto gotowe liczby (NIE przeliczaj ich). Napisz uzasadnienie i "
+             "matrycę ryzyk jako JSON.\n\n"
+             + json.dumps(dane, ensure_ascii=False, indent=2))
+    if kontekst.strip():
+        tresc += ("\n\nDodatkowe informacje o kliencie (uwzględnij w uzasadnieniu "
+                  "i ryzykach, ale NIE przeliczaj liczb):\n" + kontekst.strip())
     try:
         resp = klient.messages.create(
             model=MODEL,
             max_tokens=1500,
             system=SYSTEM_PROMPT,
-            messages=[{
-                "role": "user",
-                "content": ("Oto gotowe liczby (NIE przeliczaj ich). Napisz "
-                            "uzasadnienie i matrycę ryzyk jako JSON.\n\n"
-                            + json.dumps(dane, ensure_ascii=False, indent=2)),
-            }],
+            messages=[{"role": "user", "content": tresc}],
         )
         tekst = resp.content[0].text
         parsed = _parsuj_json(tekst)

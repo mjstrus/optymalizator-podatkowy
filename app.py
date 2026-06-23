@@ -55,8 +55,8 @@ st.markdown(
 with st.sidebar:
     st.header("Dane klienta")
 
-    st.session_state.setdefault("przychod", 300_000.0)
-    st.session_state.setdefault("koszty", 50_000.0)
+    st.session_state.setdefault("przychod", None)
+    st.session_state.setdefault("koszty", None)
 
     # Import z KPiR (PDF) — wypełnia przychód i koszty do POTWIERDZENIA.
     plik = st.file_uploader("Import z KPiR (PDF)", type=["pdf"])
@@ -78,10 +78,11 @@ with st.sidebar:
     koszty = st.number_input("Roczne koszty (zł)", min_value=0.0,
                              step=5_000.0, key="koszty")
 
-    charakter = st.text_input("Charakter usług / PKWiU", value="usługi IT")
+    charakter = st.text_input("Charakter usług / PKWiU", value="")
     stawka_ryczaltu = st.number_input("Stawka ryczałtu", min_value=0.0,
                                       max_value=0.20, value=0.12, step=0.005,
-                                      format="%.3f")
+                                      format="%.3f",
+                                      help="Sugerowana stawka — wskaż właściwą dla PKWiU.")
 
     forma_zus = st.selectbox(
         "Forma ZUS",
@@ -207,6 +208,15 @@ with st.sidebar:
                           min_value=2, max_value=8, value=(4, 6))
     stopy_zwrotu = tuple(s / 100 for s in stopy_pct)
 
+    st.subheader("Dodatkowe informacje")
+    dodatkowe_info = st.text_area(
+        "Specyfika, wymagania i oczekiwania klienta",
+        placeholder="np. plany sukcesji, sezonowość, planowane inwestycje, "
+                    "preferencja prostoty rozliczeń, kredyt hipoteczny, "
+                    "zatrudnianie pracowników...",
+        help="Trafia do warstwy AI (uzasadnienie + matryca ryzyk). "
+             "Nie wpływa na liczby.")
+
     licz = st.button("Policz formy", type="primary", width="stretch")
 
     st.divider()
@@ -296,14 +306,14 @@ st.subheader("Kluczowe uzasadnienie i matryca ryzyk")
 
 
 @st.cache_data(show_spinner="Generuję uzasadnienie…")
-def _narracja_cached(_wynik, sygnatura):
-    # `sygnatura` (hashowalna) wymusza cache po liczbach wyniku; `_wynik`
-    # pomijany w hashowaniu. Dzięki temu ruch suwakiem nie wywołuje API.
-    return generuj_narracje(_wynik)
+def _narracja_cached(_wynik, sygnatura, kontekst):
+    # `sygnatura` i `kontekst` (hashowalne) wymuszają cache po liczbach i treści;
+    # `_wynik` pomijany w hashowaniu. Ruch suwakiem nie wywołuje API.
+    return generuj_narracje(_wynik, kontekst=kontekst)
 
 
 _sygn = tuple((f.nazwa, f.podatek, f.dochod_netto) for f in wynik.formy)
-narracja = _narracja_cached(wynik, _sygn)
+narracja = _narracja_cached(wynik, _sygn, dodatkowe_info)
 if narracja.dostepna:
     for punkt in narracja.uzasadnienie:
         st.markdown(f"- {punkt}")

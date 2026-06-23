@@ -74,3 +74,12 @@ def test_graceful_degradation_bez_klucza(monkeypatch, wynik):
     n = generuj_narracje(wynik, klient=None)
     assert n.dostepna is False
     assert "klucz" in (n.powod or "").lower()
+
+
+def test_kontekst_trafia_do_promptu(wynik):
+    capture = {}
+    payload = {"uzasadnienie": ["x"], "matryca_ryzyk": []}
+    generuj_narracje(wynik, klient=_FakeClient(payload, capture),
+                     kontekst="Klient planuje sprzedaż firmy za 2 lata.")
+    tresc = capture["messages"][0]["content"]
+    assert "sprzedaż firmy" in tresc
