@@ -123,6 +123,11 @@ with st.sidebar:
             if dochod_m is not None:
                 st.session_state["dochod_malzonka"] = float(dochod_m)
                 st.success("Wczytano dochód małżonka z KPiR. Zweryfikuj poniżej.")
+            # Zapamiętaj przychód/koszty małżonka do modelu „małżonek w spółce" (R15).
+            if wm.przychod is not None:
+                st.session_state["_malzonek_przychod"] = float(wm.przychod)
+            if wm.koszty is not None:
+                st.session_state["_malzonek_koszty"] = float(wm.koszty)
             for o in wm.ostrzezenia:
                 st.warning(o)
         dochod_malzonka = st.number_input("Dochód małżonka (zł)", min_value=0.0,
@@ -170,6 +175,10 @@ with st.sidebar:
                                1.0: "Pełny"}[v],
     )
     malzonek_do_spolki = st.checkbox("Małżonek wnoszony do spółki (wspólnik)")
+    if malzonek_do_spolki and not st.session_state.get("_malzonek_przychod"):
+        st.caption("Wgraj KPiR małżonka (przy wspólnym rozliczeniu), aby "
+                   "uwzględnić jego działalność w spółce. Bez tego R15 nie "
+                   "ma danych.")
     proporcja = st.slider("Część oszczędności pracująca w III filarze",
                           min_value=0.0, max_value=1.0, value=0.5, step=0.05)
     stopy_pct = st.slider("Stopy zwrotu projekcji (% realnie)",
@@ -208,6 +217,9 @@ dane = DaneKlienta(
     art_176_kwota=art176_kwota,
     etat_poza_jdg=etat_poza_jdg,
     etat_poza_jdg_malzonek=etat_malzonek,
+    malzonek_do_spolki=malzonek_do_spolki,
+    malzonek_przychod=st.session_state.get("_malzonek_przychod", 0.0),
+    malzonek_koszty=st.session_state.get("_malzonek_koszty", 0.0),
     poziom_etatu=poziom_etatu,
     ulgi=Ulgi(liczba_dzieci=int(liczba_dzieci), ulga_4plus=ulga_4plus,
               ip_box=ip_box, ikze_kwota=ikze),
@@ -221,6 +233,12 @@ except Exception as e:  # awaria rdzenia nie może zostawić pustego ekranu
 
 # --- Werdykt ----------------------------------------------------------------
 st.success(UI.tekst_werdyktu(wynik))
+
+if wspolne and wynik.werdykt in ("Liniowy", "Ryczałt"):
+    st.warning("Uwaga: wspólne rozliczenie z małżonkiem przysługuje wyłącznie "
+               "przy skali podatkowej. Przy rekomendowanym podatku liniowym lub "
+               "ryczałcie nie można rozliczyć się wspólnie — opcja wpływa tu "
+               "tylko na wariant Skala.")
 
 # --- Tabela porównawcza -----------------------------------------------------
 st.subheader("Tabela porównawcza")

@@ -172,9 +172,10 @@ def _oblicz_etat(pensja_brutto: float) -> WynikEtat:
     )
 
 
-def _oblicz_spzoo(dane: DaneKlienta) -> WynikFormy:
+def _oblicz_spzoo(dane: DaneKlienta, dodatkowy_zysk: float = 0.0) -> WynikFormy:
     # Pakiet „spółka + etat": pensja wspólnika jest kosztem spółki (obniża CIT
     # i dywidendę), a jednocześnie dochodem opodatkowanym skalą u pracownika.
+    # `dodatkowy_zysk`: zysk z działalności małżonka wniesionej do spółki (R15).
     etat = None
     koszt_etatu = 0.0
     if dane.poziom_etatu > 0:
@@ -182,7 +183,7 @@ def _oblicz_spzoo(dane: DaneKlienta) -> WynikFormy:
         etat = _oblicz_etat(pensja)
         koszt_etatu = etat.koszt_pracodawcy
 
-    zysk = dane.przychod - dane.koszty - koszt_etatu
+    zysk = dane.przychod - dane.koszty + dodatkowy_zysk - koszt_etatu
 
     # Art. 176 KSH: świadczenia wspólnika to koszt spółki (obniżają CIT i
     # dywidendę), u wspólnika opodatkowane skalą — BEZ ZUS i BEZ zdrowotnej.
@@ -264,17 +265,48 @@ def _ulga_dzieci(dane: DaneKlienta, podatek: float, zus: float,
     return min(naliczona, max(0.0, podatek) + zus + zdrowotna)
 
 
+def _najlepsza_jdg_malzonka(dane: DaneKlienta) -> float:
+    """Samodzielny najlepszy dochód netto małżonka na JDG (skala/liniowy/
+    ryczałt) — bez sp. z o.o., bez R15 (uniknięcie rekurencji)."""
+    malzonek = DaneKlienta(
+        przychod=dane.malzonek_przychod,
+        koszty=dane.malzonek_koszty,
+        stawka_ryczaltu=dane.stawka_ryczaltu,
+        forma_zus=dane.forma_zus,
+        etat_poza_jdg=dane.etat_poza_jdg_malzonek,
+    )
+    w = run_optimization(malzonek)
+    jdg = [f for f in w.formy if f.nazwa != "Sp. z o.o."
+           and f.dostepnosc == Dostepnosc.DOSTEPNA]
+    return max((f.dochod_netto for f in jdg), default=0.0)
+
+
 # --- Punkt wejścia ----------------------------------------------------------
 def run_optimization(dane: DaneKlienta) -> WynikOptymalizacji:
     """Policz cztery formy, zastosuj screening i wyłoń werdykt."""
     zus = _zus_spoleczny(dane)
 
+    # R15: małżonek wnoszony do spółki → porównanie na poziomie PARY.
+    # JDG (klient na danej formie) + samodzielny najlepszy wynik małżonka;
+    # sp. z o.o. wciąga zysk z działalności małżonka.
+    dodatkowy_zysk = 0.0
+    netto_malzonka_jdg = 0.0
+    if dane.malzonek_do_spolki:
+        dodatkowy_zysk = dane.malzonek_przychod - dane.malzonek_koszty
+        netto_malzonka_jdg = _najlepsza_jdg_malzonka(dane)
+
     formy = [
         _oblicz_skala(dane, zus),
         _oblicz_liniowy(dane, zus),
         _oblicz_ryczalt(dane, zus),
-        _oblicz_spzoo(dane),
+        _oblicz_spzoo(dane, dodatkowy_zysk=dodatkowy_zysk),
     ]
+    if dane.malzonek_do_spolki:
+        # Formy JDG klienta uzupełniamy o samodzielny dochód małżonka (para),
+        # aby porównanie z „oboje w spółce" było rzetelne.
+        for f in formy:
+            if f.nazwa != "Sp. z o.o.":
+                f.dochod_netto = round(f.dochod_netto + netto_malzonka_jdg, 2)
 
     # Screening: oznacz niedostępne formy.
     screening = _screening(dane)

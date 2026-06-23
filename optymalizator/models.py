@@ -54,7 +54,12 @@ class DaneKlienta:
     wyplata_dywidendy_pct: float = 1.0     # założenie wypłaty zysku (R6)
     # Zbieg tytułów: etat poza JDG (pensja ≥ minimalnej) → brak ZUS społecznego.
     etat_poza_jdg: bool = False
-    etat_poza_jdg_malzonek: bool = False   # informacyjnie dla UI (ZUS małżonka)
+    etat_poza_jdg_malzonek: bool = False
+
+    # R15: małżonek wnoszony do spółki jako wspólnik (model na poziomie pary).
+    malzonek_do_spolki: bool = False
+    malzonek_przychod: float = 0.0
+    malzonek_koszty: float = 0.0
     # Sp. z o.o. jako pakiet „spółka + etat" (R6 rozszerzone). Ułamek płacy
     # minimalnej jako pensja wspólnika; 0.0 = czysta dywidenda (bez etatu).
     poziom_etatu: float = 0.0
