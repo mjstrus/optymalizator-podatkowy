@@ -101,8 +101,13 @@ with st.sidebar:
 
     st.subheader("Flagi")
     byly_pracodawca = st.checkbox("Były pracodawca (blokuje ryczałt i liniowy)")
+    etat_poza_jdg = st.checkbox(
+        "Klient ma etat poza działalnością (pensja ≥ minimalnej)",
+        help="Zbieg tytułów — z działalności płacona tylko składka zdrowotna, "
+             "bez ZUS społecznego.")
     wspolne = st.checkbox("Wspólne rozliczenie z małżonkiem")
     dochod_malzonka = 0.0
+    etat_malzonek = False
     if wspolne:
         st.session_state.setdefault("dochod_malzonka", 0.0)
         plik_m = st.file_uploader("Import KPiR małżonka (PDF, opcjonalnie)",
@@ -121,15 +126,30 @@ with st.sidebar:
                 st.warning(o)
         dochod_malzonka = st.number_input("Dochód małżonka (zł)", min_value=0.0,
                                           step=10_000.0, key="dochod_malzonka")
-        zus_malzonka = st.number_input(
-            "ZUS społeczny małżonka — rocznie (zł)", min_value=0.0,
-            value=0.0, step=1_000.0,
-            help="Pomniejsza dochód małżonka do wspólnego rozliczenia. "
-                 "Zostaw 0, jeśli małżonek nie prowadzi działalności (np. etat).")
+        etat_malzonek = st.checkbox(
+            "Małżonek ma etat poza działalnością (≥ min.)",
+            help="Zbieg tytułów — małżonek nie płaci ZUS społecznego z działalności.")
+        if etat_malzonek:
+            zus_malzonka = 0.0
+            st.caption("Zbieg: ZUS społeczny małżonka z działalności = 0.")
+        else:
+            zus_malzonka = st.number_input(
+                "ZUS społeczny małżonka — rocznie (zł)", min_value=0.0,
+                value=0.0, step=1_000.0,
+                help="Pomniejsza dochód małżonka do wspólnego rozliczenia. "
+                     "Zostaw 0, jeśli małżonek nie prowadzi działalności.")
         # Dochód małżonka do silnika = dochód po odliczeniu jego składek społecznych.
         dochod_malzonka = max(0.0, dochod_malzonka - zus_malzonka)
     jednoosobowa = st.checkbox("Jednoosobowa sp. z o.o.")
-    art176 = st.checkbox("Ścieżka art. 176 KSH")
+    art176 = st.checkbox("Ścieżka art. 176 KSH (świadczenia wspólnika)")
+    art176_kwota = None
+    if art176:
+        _kw = st.number_input(
+            "Kwota świadczeń art. 176 — rocznie (0 = auto do I progu)",
+            min_value=0.0, value=0.0, step=10_000.0,
+            help="Świadczenia są kosztem spółki i są opodatkowane skalą, "
+                 "bez ZUS i bez składki zdrowotnej. 0 = automatycznie do 120 000 zł.")
+        art176_kwota = _kw if _kw > 0 else None
 
     st.subheader("Ulgi i preferencje")
     liczba_dzieci = st.number_input("Liczba dzieci", min_value=0, value=0, step=1)
@@ -184,6 +204,9 @@ dane = DaneKlienta(
     dochod_malzonka=dochod_malzonka,
     jednoosobowa_spzoo=jednoosobowa,
     art_176=art176,
+    art_176_kwota=art176_kwota,
+    etat_poza_jdg=etat_poza_jdg,
+    etat_poza_jdg_malzonek=etat_malzonek,
     poziom_etatu=poziom_etatu,
     ulgi=Ulgi(liczba_dzieci=int(liczba_dzieci), ulga_4plus=ulga_4plus,
               ip_box=ip_box, ikze_kwota=ikze),

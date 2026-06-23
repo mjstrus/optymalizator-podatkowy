@@ -24,6 +24,9 @@ def _zus_spoleczny(dane: DaneKlienta) -> float:
     """Roczny ZUS społeczny wg formy. Podstawa emer.-rentowa jest stała
     (poniżej rocznego ograniczenia 282 600 zł), więc składka nie rośnie
     z dochodem (R5)."""
+    # Zbieg tytułów: etat poza JDG z pensją ≥ minimalnej → tylko zdrowotna.
+    if dane.etat_poza_jdg:
+        return 0.0
     match dane.forma_zus:
         case FormaZUS.DUZY:
             return P.ZUS_DUZY_ROCZNY
@@ -180,11 +183,24 @@ def _oblicz_spzoo(dane: DaneKlienta) -> WynikFormy:
         koszt_etatu = etat.koszt_pracodawcy
 
     zysk = dane.przychod - dane.koszty - koszt_etatu
+
+    # Art. 176 KSH: świadczenia wspólnika to koszt spółki (obniżają CIT i
+    # dywidendę), u wspólnika opodatkowane skalą — BEZ ZUS i BEZ zdrowotnej.
+    swiadczenia = 0.0
+    pit_176 = 0.0
+    if dane.art_176:
+        if dane.art_176_kwota is not None:
+            swiadczenia = min(dane.art_176_kwota, max(0.0, zysk))
+        else:  # auto: do wysokości I progu skali (opodatkowane 12%)
+            swiadczenia = min(max(0.0, zysk), P.SKALA_PROG)
+        zysk -= swiadczenia
+        pit_176 = _podatek_skala_osoba(swiadczenia)
+
     cit = max(0.0, P.CIT_STAWKA * zysk)
     zysk_po_cit = zysk - cit
     dywidenda = max(0.0, zysk_po_cit) * dane.wyplata_dywidendy_pct
     pit_dyw = P.DYWIDENDA_STAWKA * dywidenda
-    podatek = cit + pit_dyw + (etat.pit if etat else 0.0)
+    podatek = cit + pit_dyw + pit_176 + (etat.pit if etat else 0.0)
 
     # Jednoosobowa: wspólnik płaci dodatkową zdrowotną + ZUS (R6).
     if dane.jednoosobowa_spzoo:
@@ -207,11 +223,14 @@ def _oblicz_spzoo(dane: DaneKlienta) -> WynikFormy:
         zalozenie_wyplaty += (f" Pakiet spółka + etat ({dane.poziom_etatu:.0%} "
                               "płacy minimalnej).")
     if dane.art_176:
-        zalozenie_wyplaty += " Rozważ ścieżkę art. 176 KSH (świadczenia wspólnika)."
+        zalozenie_wyplaty += (f" Art. 176 KSH: świadczenia wspólnika "
+                              f"{swiadczenia:,.0f} zł (skala, bez ZUS/zdrowotnej).")
     zalozenia = (zalozenia + " " if zalozenia else "") + zalozenie_wyplaty
 
-    # Netto = dywidenda po PIT + pensja netto − dodatkowe obciążenia jednoosobowej.
-    netto = zysk_po_cit - pit_dyw + (etat.netto if etat else 0.0)
+    # Netto = dywidenda po PIT + pensja netto + świadczenia po PIT (bez ZUS/zdrow.)
+    #         − dodatkowe obciążenia jednoosobowej.
+    netto = (zysk_po_cit - pit_dyw + (etat.netto if etat else 0.0)
+             + (swiadczenia - pit_176))
     if dane.jednoosobowa_spzoo:
         netto -= P.SPZOO_JEDNOOSOBOWA_ZDROWOTNA_ROCZNA + P.SPZOO_JEDNOOSOBOWA_ZUS_ROCZNY
 
@@ -224,6 +243,7 @@ def _oblicz_spzoo(dane: DaneKlienta) -> WynikFormy:
         zdrowotna_od_etatu=(etat.zdrowotna if etat else None),
         koszt_pensji_w_spolce=(etat.koszt_pracodawcy if etat else None),
         marginalna_stawka_etatu=(etat.marginalna_stawka if etat else None),
+        swiadczenia_art176=(round(swiadczenia, 2) if dane.art_176 else None),
     )
 
 

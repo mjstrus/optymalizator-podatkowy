@@ -50,7 +50,11 @@ class DaneKlienta:
     dochod_malzonka: float = 0.0
     jednoosobowa_spzoo: bool = False
     art_176: bool = False                  # ścieżka art. 176 KSH
+    art_176_kwota: float | None = None     # roczna kwota świadczeń; None = auto do I progu
     wyplata_dywidendy_pct: float = 1.0     # założenie wypłaty zysku (R6)
+    # Zbieg tytułów: etat poza JDG (pensja ≥ minimalnej) → brak ZUS społecznego.
+    etat_poza_jdg: bool = False
+    etat_poza_jdg_malzonek: bool = False   # informacyjnie dla UI (ZUS małżonka)
     # Sp. z o.o. jako pakiet „spółka + etat" (R6 rozszerzone). Ułamek płacy
     # minimalnej jako pensja wspólnika; 0.0 = czysta dywidenda (bez etatu).
     poziom_etatu: float = 0.0
@@ -108,6 +112,7 @@ class WynikFormy:
     zdrowotna_od_etatu: float | None = None
     koszt_pensji_w_spolce: float | None = None
     marginalna_stawka_etatu: float | None = None
+    swiadczenia_art176: float | None = None   # kwota świadczeń art. 176 KSH
 
 
 @dataclass

@@ -50,8 +50,18 @@ deterministyczne i przetestowane (82 testy), ale poprawność *reguł* podatkowy
 - **Jednoosobowa sp. z o.o.** — doliczona zdrowotna + ZUS wspólnika.
 - **Struktura 2-osobowa** (np. 99/1) bywa kwestionowana przez ZUS — pokazywane
   jako ryzyko, nie ukrywane.
-- **Art. 176 KSH** — sygnalizowany jako opcja w założeniach, bez osobnego
-  modelu liczbowego.
+- **Art. 176 KSH** — modelowany liczbowo: świadczenia wspólnika to koszt spółki
+  (obniżają CIT i dywidendę), u wspólnika opodatkowane skalą, **bez ZUS i bez
+  zdrowotnej**. Kwota: auto do I progu skali (120 000 zł) lub podana przez
+  doradcę. *Warunki prawne (zapis w umowie spółki, realność i wycena świadczeń)
+  do potwierdzenia — US/ZUS mogą kwestionować pozorne świadczenia.*
+
+## Zbieg tytułów (etat poza działalnością)
+
+- Flaga „etat poza JDG" (klient i osobno małżonek): pensja ≥ minimalnej z innego
+  tytułu → z działalności płacona **tylko składka zdrowotna, bez ZUS
+  społecznego** (`zus_spoleczny = 0` dla skali/liniowego/ryczałtu tej osoby).
+  *Założenie: pensja z etatu ≥ minimalnego wynagrodzenia (warunek zbiegu).*
 
 ## Reinwestycja (III filar)
 
