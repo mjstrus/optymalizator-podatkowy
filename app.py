@@ -250,6 +250,16 @@ for f in wynik.formy:
     if f.zalozenia:
         st.caption(f"ℹ️ {f.nazwa}: {f.zalozenia}")
 
+# --- Rozbicie na małżonków (R15) --------------------------------------------
+if malzonek_do_spolki:
+    rozb_malz = UI.wiersze_rozbicie_malzonkowie(wynik)
+    if rozb_malz:
+        st.subheader("Rozbicie dochodu: Małżonek 1 i Małżonek 2 (formy JDG)")
+        st.dataframe(rozb_malz, use_container_width=True, hide_index=True)
+        st.caption("Dwie OSOBNE działalności liczone niezależnie, sumowane po "
+                   "opodatkowaniu. Sp. z o.o. pominięta — to jeden podmiot "
+                   "(dochód wspólny).")
+
 # --- Skumulowany majątek po 1 / 5 / 10 latach -------------------------------
 st.subheader("Skumulowany dochód netto w czasie")
 majatek = projekcja_majatku(wynik, lata=(1, 5, 10), stopa=0.0)

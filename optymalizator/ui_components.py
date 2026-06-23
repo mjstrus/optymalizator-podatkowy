@@ -51,6 +51,23 @@ def wiersze_alokacje(reinwestycja) -> list[dict]:
     return wiersze
 
 
+def wiersze_rozbicie_malzonkowie(wynik: WynikOptymalizacji) -> list[dict]:
+    """Rozbicie dochodu netto na małżonka 1 (klient) i 2 — dla form JDG (R15).
+    Sp. z o.o. pomijana (dochód wspólny, jeden podmiot)."""
+    wiersze = []
+    for f in wynik.formy:
+        if f.dochod_netto_klient is None:
+            continue
+        nazwa = ("⭐ " + f.nazwa) if f.nazwa == wynik.werdykt else f.nazwa
+        wiersze.append({
+            "Forma": nazwa,
+            "Małżonek 1 (klient)": formatuj_pln(f.dochod_netto_klient),
+            "Małżonek 2": formatuj_pln(f.dochod_netto_malzonek),
+            "Razem": formatuj_pln(f.dochod_netto),
+        })
+    return wiersze
+
+
 def wiersze_majatek(projekcja) -> list[dict]:
     """Wiersze tabeli skumulowanego majątku (1/5/10 lat); rekomendacja z gwiazdką."""
     wiersze = []

@@ -118,6 +118,9 @@ class WynikFormy:
     koszt_pensji_w_spolce: float | None = None
     marginalna_stawka_etatu: float | None = None
     swiadczenia_art176: float | None = None   # kwota świadczeń art. 176 KSH
+    # Rozbicie pary przy R15 (tylko formy JDG; sp. z o.o. = dochód wspólny).
+    dochod_netto_klient: float | None = None
+    dochod_netto_malzonek: float | None = None
 
 
 @dataclass

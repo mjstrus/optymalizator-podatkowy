@@ -306,6 +306,8 @@ def run_optimization(dane: DaneKlienta) -> WynikOptymalizacji:
         # aby porównanie z „oboje w spółce" było rzetelne.
         for f in formy:
             if f.nazwa != "Sp. z o.o.":
+                f.dochod_netto_klient = f.dochod_netto
+                f.dochod_netto_malzonek = round(netto_malzonka_jdg, 2)
                 f.dochod_netto = round(f.dochod_netto + netto_malzonka_jdg, 2)
 
     # Screening: oznacz niedostępne formy.
