@@ -106,11 +106,22 @@ with st.sidebar:
         "Klient ma etat poza działalnością (pensja ≥ minimalnej)",
         help="Zbieg tytułów — z działalności płacona tylko składka zdrowotna, "
              "bez ZUS społecznego.")
-    wspolne = st.checkbox("Wspólne rozliczenie z małżonkiem")
+    # --- Małżonek: wspólne rozliczenie i/lub wniesienie do spółki ----------
+    st.subheader("Małżonek")
+    wspolne = st.checkbox("Wspólne rozliczenie z małżonkiem (tylko skala)")
+    malzonek_do_spolki = st.checkbox(
+        "Małżonek wnoszony do spółki (oboje na JDG → wspólna sp. z o.o.)")
+
     dochod_malzonka = 0.0
     etat_malzonek = False
-    if wspolne:
+    malzonek_przychod = 0.0
+    malzonek_koszty = 0.0
+
+    # Dane małżonka potrzebne dla OBU opcji — niezależne od wspólnego rozliczenia.
+    if wspolne or malzonek_do_spolki:
         st.session_state.setdefault("dochod_malzonka", 0.0)
+        st.session_state.setdefault("_malzonek_przychod", 0.0)
+        st.session_state.setdefault("_malzonek_koszty", 0.0)
         plik_m = st.file_uploader("Import KPiR małżonka (PDF, opcjonalnie)",
                                   type=["pdf"], key="kpir_malzonek")
         if plik_m is not None and \
@@ -122,19 +133,29 @@ with st.sidebar:
                 dochod_m = wm.przychod - wm.koszty
             if dochod_m is not None:
                 st.session_state["dochod_malzonka"] = float(dochod_m)
-                st.success("Wczytano dochód małżonka z KPiR. Zweryfikuj poniżej.")
-            # Zapamiętaj przychód/koszty małżonka do modelu „małżonek w spółce" (R15).
             if wm.przychod is not None:
                 st.session_state["_malzonek_przychod"] = float(wm.przychod)
             if wm.koszty is not None:
                 st.session_state["_malzonek_koszty"] = float(wm.koszty)
+            st.success("Wczytano KPiR małżonka. Zweryfikuj pola poniżej.")
             for o in wm.ostrzezenia:
                 st.warning(o)
-        dochod_malzonka = st.number_input("Dochód małżonka (zł)", min_value=0.0,
-                                          step=10_000.0, key="dochod_malzonka")
         etat_malzonek = st.checkbox(
             "Małżonek ma etat poza działalnością (≥ min.)",
             help="Zbieg tytułów — małżonek nie płaci ZUS społecznego z działalności.")
+
+    if malzonek_do_spolki:
+        malzonek_przychod = st.number_input(
+            "Przychód małżonka — rocznie (zł)", min_value=0.0, step=10_000.0,
+            key="_malzonek_przychod")
+        malzonek_koszty = st.number_input(
+            "Koszty małżonka — rocznie (zł)", min_value=0.0, step=5_000.0,
+            key="_malzonek_koszty")
+
+    if wspolne:
+        dochod_malzonka = st.number_input(
+            "Dochód małżonka — do wspólnego rozliczenia (zł)", min_value=0.0,
+            step=10_000.0, key="dochod_malzonka")
         if etat_malzonek:
             zus_malzonka = 0.0
             st.caption("Zbieg: ZUS społeczny małżonka z działalności = 0.")
@@ -144,8 +165,9 @@ with st.sidebar:
                 value=0.0, step=1_000.0,
                 help="Pomniejsza dochód małżonka do wspólnego rozliczenia. "
                      "Zostaw 0, jeśli małżonek nie prowadzi działalności.")
-        # Dochód małżonka do silnika = dochód po odliczeniu jego składek społecznych.
         dochod_malzonka = max(0.0, dochod_malzonka - zus_malzonka)
+
+    st.subheader("Pozostałe")
     jednoosobowa = st.checkbox("Jednoosobowa sp. z o.o.")
     art176 = st.checkbox("Ścieżka art. 176 KSH (świadczenia wspólnika)")
     art176_kwota = None
@@ -174,11 +196,6 @@ with st.sidebar:
                                0.5: "1/2 (rekomendowane)", 0.75: "3/4",
                                1.0: "Pełny"}[v],
     )
-    malzonek_do_spolki = st.checkbox("Małżonek wnoszony do spółki (wspólnik)")
-    if malzonek_do_spolki and not st.session_state.get("_malzonek_przychod"):
-        st.caption("Wgraj KPiR małżonka (przy wspólnym rozliczeniu), aby "
-                   "uwzględnić jego działalność w spółce. Bez tego R15 nie "
-                   "ma danych.")
     proporcja = st.slider("Część oszczędności pracująca w III filarze",
                           min_value=0.0, max_value=1.0, value=0.5, step=0.05)
     stopy_pct = st.slider("Stopy zwrotu projekcji (% realnie)",
@@ -218,8 +235,8 @@ dane = DaneKlienta(
     etat_poza_jdg=etat_poza_jdg,
     etat_poza_jdg_malzonek=etat_malzonek,
     malzonek_do_spolki=malzonek_do_spolki,
-    malzonek_przychod=st.session_state.get("_malzonek_przychod", 0.0),
-    malzonek_koszty=st.session_state.get("_malzonek_koszty", 0.0),
+    malzonek_przychod=malzonek_przychod,
+    malzonek_koszty=malzonek_koszty,
     poziom_etatu=poziom_etatu,
     ulgi=Ulgi(liczba_dzieci=int(liczba_dzieci), ulga_4plus=ulga_4plus,
               ip_box=ip_box, ikze_kwota=ikze),
