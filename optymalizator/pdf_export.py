@@ -6,6 +6,7 @@ co czyni zawartość testowalną bez parsowania binarnego PDF.
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 from fpdf import FPDF
 from fpdf.enums import XPos, YPos
@@ -19,8 +20,11 @@ NAVY = (13, 27, 42)        # #0d1b2a
 NAVY_2 = (27, 45, 69)      # #1b2d45
 SZARY = (90, 90, 90)
 
-ARIAL = r"C:\Windows\Fonts\arial.ttf"
-ARIAL_BOLD = r"C:\Windows\Fonts\arialbd.ttf"
+# Font Unicode dołączony do repo (DejaVuSans) — działa na każdym systemie
+# (Windows/Linux/Streamlit Cloud) i ma pełen zestaw polskich znaków.
+_FONTS = Path(__file__).resolve().parent.parent / "fonts"
+DEJAVU = str(_FONTS / "DejaVuSans.ttf")
+DEJAVU_BOLD = str(_FONTS / "DejaVuSans-Bold.ttf")
 
 ZASTRZEZENIE = (
     "Dokument ma charakter doradczy i prognostyczny na rok 2026. Wynik dla sp. z o.o. "
@@ -133,13 +137,13 @@ def _wiersze_tabeli(wynik: WynikOptymalizacji) -> list[dict]:
 class _Raport(FPDF):
     def __init__(self):
         super().__init__(orientation="P", unit="mm", format="A4")
-        self._unicode = os.path.exists(ARIAL)
+        self._unicode = os.path.exists(DEJAVU)
         if self._unicode:
-            self.add_font("Arial", "", ARIAL)
-            self.add_font("Arial", "B", ARIAL_BOLD if os.path.exists(ARIAL_BOLD)
-                          else ARIAL)
-            self._font = "Arial"
-        else:
+            self.add_font("DejaVu", "", DEJAVU)
+            self.add_font("DejaVu", "B", DEJAVU_BOLD if os.path.exists(DEJAVU_BOLD)
+                          else DEJAVU)
+            self._font = "DejaVu"
+        else:  # awaryjnie font core (latin-1) — polskie znaki zastąpione
             self._font = "Helvetica"
 
     def _txt(self, s: str) -> str:
