@@ -207,7 +207,7 @@ with st.sidebar:
                           min_value=2, max_value=8, value=(4, 6))
     stopy_zwrotu = tuple(s / 100 for s in stopy_pct)
 
-    licz = st.button("Policz formy", type="primary", use_container_width=True)
+    licz = st.button("Policz formy", type="primary", width="stretch")
 
     st.divider()
     if _KLUCZ_OK:
@@ -265,7 +265,7 @@ if wspolne and wynik.werdykt in ("Liniowy", "Ryczałt"):
 
 # --- Tabela porównawcza -----------------------------------------------------
 st.subheader("Tabela porównawcza")
-st.dataframe(UI.tabela_porownawcza(wynik), use_container_width=True,
+st.dataframe(UI.tabela_porownawcza(wynik), width="stretch",
              hide_index=True)
 
 # Założenia sp. z o.o. (jawne — R6)
@@ -278,7 +278,7 @@ if malzonek_do_spolki:
     rozb_malz = UI.wiersze_rozbicie_malzonkowie(wynik)
     if rozb_malz:
         st.subheader("Rozbicie dochodu: Małżonek 1 i Małżonek 2 (formy JDG)")
-        st.dataframe(rozb_malz, use_container_width=True, hide_index=True)
+        st.dataframe(rozb_malz, width="stretch", hide_index=True)
         st.caption("Dwie OSOBNE działalności liczone niezależnie, sumowane po "
                    "opodatkowaniu. Sp. z o.o. pominięta — to jeden podmiot "
                    "(dochód wspólny).")
@@ -286,7 +286,7 @@ if malzonek_do_spolki:
 # --- Skumulowany majątek po 1 / 5 / 10 latach -------------------------------
 st.subheader("Skumulowany dochód netto w czasie")
 majatek = projekcja_majatku(wynik, lata=(1, 5, 10), stopa=0.0)
-st.dataframe(UI.wiersze_majatek(majatek), use_container_width=True,
+st.dataframe(UI.wiersze_majatek(majatek), width="stretch",
              hide_index=True)
 st.caption("Suma dochodu netto przy stałej prognozie 2026. Kapitalizację "
            "odłożonych oszczędności pokazuje sekcja reinwestycji poniżej.")
@@ -309,7 +309,7 @@ if narracja.dostepna:
         st.markdown(f"- {punkt}")
     if narracja.matryca_ryzyk:
         st.markdown("**Matryca ryzyk:**")
-        st.dataframe(narracja.matryca_ryzyk, use_container_width=True,
+        st.dataframe(narracja.matryca_ryzyk, width="stretch",
                      hide_index=True)
 else:
     st.info(f"Warstwa narracyjna (AI) niedostępna: {narracja.powod} "
@@ -330,7 +330,7 @@ if wynik.werdykt.lower().startswith("sp. z o.o"):
         st.subheader("Oszczędności sp. z o.o. (waterfall brutto)")
         st.caption("Pełny ZUS/zdrowotna z JDG znika (+), składki od etatu "
                    "w spółce dochodzą (−).")
-        st.dataframe(UI.wiersze_waterfall(rozbicie), use_container_width=True,
+        st.dataframe(UI.wiersze_waterfall(rozbicie), width="stretch",
                      hide_index=True)
 
         if rozbicie.netto > 0:
@@ -346,7 +346,7 @@ if wynik.werdykt.lower().startswith("sp. z o.o"):
                      f"pracujące w III filarze, "
                      f"**{UI.formatuj_pln(reinwestycja.czesc_gotowka)}** w gotówce.")
             st.dataframe(UI.wiersze_alokacje(reinwestycja),
-                         use_container_width=True, hide_index=True)
+                         width="stretch", hide_index=True)
             for p in reinwestycja.projekcje:
                 st.markdown(f"- **{p.stopa:.0%}** przez {p.horyzont} lat → "
                             f"{UI.formatuj_pln(p.wartosc_koncowa)} "
