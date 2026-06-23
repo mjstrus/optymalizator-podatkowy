@@ -29,6 +29,7 @@ from optymalizator import params_2026 as P
 from optymalizator import ui_components as UI
 from optymalizator.engine import run_optimization
 from optymalizator.kpir_import import parsuj_kpir
+from optymalizator.majatek import projekcja_majatku
 from optymalizator.models import DaneKlienta, FormaZUS, Ulgi
 from optymalizator.narracja import generuj_narracje
 from optymalizator.oszczednosci import rozbij_przewage
@@ -231,6 +232,14 @@ for f in wynik.formy:
     if f.zalozenia:
         st.caption(f"ℹ️ {f.nazwa}: {f.zalozenia}")
 
+# --- Skumulowany majątek po 1 / 5 / 10 latach -------------------------------
+st.subheader("Skumulowany dochód netto w czasie")
+majatek = projekcja_majatku(wynik, lata=(1, 5, 10), stopa=0.0)
+st.dataframe(UI.wiersze_majatek(majatek), use_container_width=True,
+             hide_index=True)
+st.caption("Suma dochodu netto przy stałej prognozie 2026. Kapitalizację "
+           "odłożonych oszczędności pokazuje sekcja reinwestycji poniżej.")
+
 # --- Warstwa narracyjna (Unit 4) — graceful degradation ---------------------
 st.subheader("Kluczowe uzasadnienie i matryca ryzyk")
 
@@ -303,7 +312,7 @@ if wynik.werdykt.lower().startswith("sp. z o.o"):
 st.subheader("Raport dla klienta")
 try:
     pdf_bytes = generuj_pdf(wynik, narracja, rozbicie=rozbicie,
-                            reinwestycja=reinwestycja)
+                            reinwestycja=reinwestycja, majatek=majatek)
     st.download_button("⬇️ Pobierz brandowany PDF", data=pdf_bytes,
                        file_name="optymalizacja_podatkowa_2026.pdf",
                        mime="application/pdf", type="primary")

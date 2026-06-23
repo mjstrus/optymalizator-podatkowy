@@ -51,6 +51,19 @@ def wiersze_alokacje(reinwestycja) -> list[dict]:
     return wiersze
 
 
+def wiersze_majatek(projekcja) -> list[dict]:
+    """Wiersze tabeli skumulowanego majątku (1/5/10 lat); rekomendacja z gwiazdką."""
+    wiersze = []
+    for p in projekcja:
+        nazwa = ("⭐ " + p.forma) if p.rekomendowana else p.forma
+        wiersz = {"Forma": nazwa}
+        for rok, wartosc in p.wartosci.items():
+            wiersz[f"Po {rok} latach" if rok > 1 else "Po 1 roku"] = \
+                formatuj_pln(wartosc)
+        wiersze.append(wiersz)
+    return wiersze
+
+
 def tabela_porownawcza(wynik: WynikOptymalizacji) -> list[dict]:
     """Zbuduj wiersze tabeli porównawczej (R7) — gotowe do renderu."""
     wiersze = []

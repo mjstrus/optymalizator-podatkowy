@@ -31,7 +31,7 @@ ZASTRZEZENIE = (
 
 def zbuduj_sekcje(wynik: WynikOptymalizacji,
                   narracja: Narracja | None,
-                  rozbicie=None, reinwestycja=None) -> list[dict]:
+                  rozbicie=None, reinwestycja=None, majatek=None) -> list[dict]:
     """Zwróć uporządkowaną listę sekcji raportu (tytuł + treść)."""
     sekcje: list[dict] = []
 
@@ -41,6 +41,17 @@ def zbuduj_sekcje(wynik: WynikOptymalizacji,
     sekcje.append({"tytul": "Tabela porównawcza form",
                    "typ": "tabela",
                    "tresc": _wiersze_tabeli(wynik)})
+
+    # Skumulowany majątek po 1/5/10 latach.
+    if majatek:
+        wiersze_m = UI.wiersze_majatek(majatek)
+        sekcje.append({
+            "tytul": "Skumulowany dochód netto (1 / 5 / 10 lat)",
+            "typ": "tabela",
+            "tresc": wiersze_m,
+            "kolumny": list(wiersze_m[0].keys()) if wiersze_m else [],
+            "szer": None,
+        })
 
     # Jawne założenia (np. sp. z o.o.)
     zalozenia = [f"{f.nazwa}: {f.zalozenia}" for f in wynik.formy if f.zalozenia]
@@ -168,10 +179,10 @@ class _Raport(FPDF):
 
 def generuj_pdf(wynik: WynikOptymalizacji,
                 narracja: Narracja | None = None,
-                rozbicie=None, reinwestycja=None) -> bytes:
+                rozbicie=None, reinwestycja=None, majatek=None) -> bytes:
     """Wygeneruj brandowany PDF jako bytes."""
     sekcje = zbuduj_sekcje(wynik, narracja, rozbicie=rozbicie,
-                           reinwestycja=reinwestycja)
+                           reinwestycja=reinwestycja, majatek=majatek)
     pdf = _Raport()
     pdf.set_auto_page_break(auto=True, margin=28)
     pdf.add_page()
