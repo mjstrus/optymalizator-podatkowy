@@ -20,6 +20,37 @@ def formatuj_pln(kwota: float) -> str:
     return f"{s} zł"
 
 
+def formatuj_pln_signed(kwota: float) -> str:
+    """Jak formatuj_pln, ale z jawnym znakiem '+' dla wartości dodatnich."""
+    znak = "+" if kwota > 0 else ""
+    return znak + formatuj_pln(kwota)
+
+
+def wiersze_waterfall(rozbicie) -> list[dict]:
+    """Wiersze waterfalla oszczędności (Unit 7) — z jawnym znakiem kwoty."""
+    wiersze = [
+        {"Pozycja": l.etykieta, "Kwota": formatuj_pln_signed(l.kwota)}
+        for l in rozbicie.linie if l.widoczna
+    ]
+    wiersze.append({"Pozycja": "Oszczędność netto (rocznie)",
+                    "Kwota": formatuj_pln_signed(rozbicie.netto)})
+    return wiersze
+
+
+def wiersze_alokacje(reinwestycja) -> list[dict]:
+    """Wiersze porównania alokacji III filaru (Unit 8); mix wyróżniony."""
+    wiersze = []
+    for a in reinwestycja.alokacje:
+        nazwa = ("⭐ " + a.nazwa) if a.rekomendowana else a.nazwa
+        wiersze.append({
+            "Wariant": nazwa,
+            "IKE": formatuj_pln(a.ike),
+            "IKZE": formatuj_pln(a.ikze),
+            "Gotówka (nadwyżka)": formatuj_pln(a.gotowka_dodatkowa),
+        })
+    return wiersze
+
+
 def tabela_porownawcza(wynik: WynikOptymalizacji) -> list[dict]:
     """Zbuduj wiersze tabeli porównawczej (R7) — gotowe do renderu."""
     wiersze = []

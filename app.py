@@ -32,6 +32,8 @@ from optymalizator import params_2026 as P
 from optymalizator.narracja import generuj_narracje
 from optymalizator.pdf_export import generuj_pdf
 from optymalizator.kpir_import import parsuj_kpir
+from optymalizator.oszczednosci import rozbij_przewage
+from optymalizator.reinwestycja import oblicz_reinwestycje
 
 st.set_page_config(page_title="Optymalizator Podatkowy 2026 — Abacus",
                    page_icon="📊", layout="wide")
@@ -136,6 +138,23 @@ with st.sidebar:
     ikze = st.number_input("Wpłata na IKZE (zł)", min_value=0.0, value=0.0,
                            step=1_000.0)
 
+    # --- Pokrętła doradcy (kategoria C): przeliczają wynik na żywo ----------
+    st.subheader("Sp. z o.o. — struktura i reinwestycja")
+    poziom_etatu = st.selectbox(
+        "Poziom etatu wspólnika",
+        options=[0.0, 0.25, 0.5, 0.75, 1.0],
+        index=2,
+        format_func=lambda v: {0.0: "Bez etatu (czysta dywidenda)", 0.25: "1/4",
+                               0.5: "1/2 (rekomendowane)", 0.75: "3/4",
+                               1.0: "Pełny"}[v],
+    )
+    malzonek_do_spolki = st.checkbox("Małżonek wnoszony do spółki (wspólnik)")
+    proporcja = st.slider("Część oszczędności pracująca w III filarze",
+                          min_value=0.0, max_value=1.0, value=0.5, step=0.05)
+    stopy_pct = st.slider("Stopy zwrotu projekcji (% realnie)",
+                          min_value=2, max_value=8, value=(4, 6))
+    stopy_zwrotu = tuple(s / 100 for s in stopy_pct)
+
     licz = st.button("Policz formy", type="primary", use_container_width=True)
 
     st.divider()
@@ -165,6 +184,7 @@ dane = DaneKlienta(
     dochod_malzonka=dochod_malzonka,
     jednoosobowa_spzoo=jednoosobowa,
     art_176=art176,
+    poziom_etatu=poziom_etatu,
     ulgi=Ulgi(liczba_dzieci=int(liczba_dzieci), ulga_4plus=ulga_4plus,
               ip_box=ip_box, ikze_kwota=ikze),
 )
@@ -198,9 +218,54 @@ else:
     st.info(f"Warstwa narracyjna (AI) niedostępna: {narracja.powod} "
             "Liczby powyżej są kompletne i niezależne od niej.")
 
+# --- Oszczędności sp. z o.o. + reinwestycja (Unit 7 + 8) --------------------
+rozbicie = None
+reinwestycja = None
+if wynik.werdykt.lower().startswith("sp. z o.o"):
+    from optymalizator.models import Dostepnosc
+    spzoo = next(f for f in wynik.formy if "z o.o" in f.nazwa.lower())
+    jdg_dostepne = [f for f in wynik.formy if "z o.o" not in f.nazwa.lower()
+                    and f.dostepnosc == Dostepnosc.DOSTEPNA]
+    if jdg_dostepne:
+        jdg = max(jdg_dostepne, key=lambda f: f.dochod_netto)
+        rozbicie = rozbij_przewage(spzoo, jdg)
+
+        st.subheader("Oszczędności sp. z o.o. (waterfall brutto)")
+        st.caption("Pełny ZUS/zdrowotna z JDG znika (+), składki od etatu "
+                   "w spółce dochodzą (−).")
+        st.dataframe(UI.wiersze_waterfall(rozbicie), use_container_width=True,
+                     hide_index=True)
+
+        if rozbicie.netto > 0:
+            reinwestycja = oblicz_reinwestycje(
+                rozbicie.netto,
+                marginalna_stawka=spzoo.marginalna_stawka_etatu or 0.12,
+                proporcja=proporcja, stopy_zwrotu=stopy_zwrotu,
+                para=malzonek_do_spolki, etat=poziom_etatu > 0,
+                pensja_etat=spzoo.pensja_etat)
+
+            st.subheader("Reinwestycja oszczędności")
+            st.write(f"Podział: **{UI.formatuj_pln(reinwestycja.czesc_pracujaca)}** "
+                     f"pracujące w III filarze, "
+                     f"**{UI.formatuj_pln(reinwestycja.czesc_gotowka)}** w gotówce.")
+            st.dataframe(UI.wiersze_alokacje(reinwestycja),
+                         use_container_width=True, hide_index=True)
+            for p in reinwestycja.projekcje:
+                st.markdown(f"- **{p.stopa:.0%}** przez {p.horyzont} lat → "
+                            f"{UI.formatuj_pln(p.wartosc_koncowa)} "
+                            f"(zysk {UI.formatuj_pln(p.zysk)})")
+            if reinwestycja.ppk:
+                st.caption(f"PPK (etat): pracownik "
+                           f"{UI.formatuj_pln(reinwestycja.ppk['wplata_pracownik'])}, "
+                           f"pracodawca "
+                           f"{UI.formatuj_pln(reinwestycja.ppk['wplata_pracodawca'])} "
+                           f"rocznie + dopłaty państwa.")
+            st.info(reinwestycja.disclaimer)
+
 # --- Eksport PDF (Unit 6) ---------------------------------------------------
 st.subheader("Raport dla klienta")
-pdf_bytes = generuj_pdf(wynik, narracja)
+pdf_bytes = generuj_pdf(wynik, narracja, rozbicie=rozbicie,
+                        reinwestycja=reinwestycja)
 st.download_button("⬇️ Pobierz brandowany PDF", data=pdf_bytes,
                    file_name="optymalizacja_podatkowa_2026.pdf",
                    mime="application/pdf", type="primary")

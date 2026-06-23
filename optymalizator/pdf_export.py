@@ -30,7 +30,8 @@ ZASTRZEZENIE = (
 
 
 def zbuduj_sekcje(wynik: WynikOptymalizacji,
-                  narracja: Narracja | None) -> list[dict]:
+                  narracja: Narracja | None,
+                  rozbicie=None, reinwestycja=None) -> list[dict]:
     """Zwróć uporządkowaną listę sekcji raportu (tytuł + treść)."""
     sekcje: list[dict] = []
 
@@ -59,6 +60,43 @@ def zbuduj_sekcje(wynik: WynikOptymalizacji,
         sekcje.append({"tytul": "Kluczowe uzasadnienie", "typ": "tekst",
                        "tresc": f"Sekcja narracyjna niedostępna: {powod} "
                                 "Liczby powyżej są kompletne."})
+
+    # Waterfall oszczędności (Unit 7) — z widoczną linią etatu.
+    if rozbicie is not None:
+        sekcje.append({
+            "tytul": "Oszczędności sp. z o.o. (waterfall brutto)",
+            "typ": "tabela",
+            "tresc": UI.wiersze_waterfall(rozbicie),
+            "kolumny": ["Pozycja", "Kwota"],
+            "szer": [130, 54],
+        })
+
+    # Reinwestycja (Unit 8) — rekomendacja + kompaktowe porównanie + projekcja.
+    if reinwestycja is not None:
+        sekcje.append({
+            "tytul": "Reinwestycja oszczędności",
+            "typ": "tekst",
+            "tresc": (f"Podział oszczędności: "
+                      f"{UI.formatuj_pln(reinwestycja.czesc_pracujaca)} "
+                      f"pracujące w III filarze, "
+                      f"{UI.formatuj_pln(reinwestycja.czesc_gotowka)} w gotówce."),
+        })
+        sekcje.append({
+            "tytul": "Porównanie alokacji III filaru",
+            "typ": "tabela",
+            "tresc": UI.wiersze_alokacje(reinwestycja),
+            "kolumny": ["Wariant", "IKE", "IKZE", "Gotówka (nadwyżka)"],
+            "szer": [60, 42, 42, 42],
+        })
+        proj = [f"{p.stopa:.0%} przez {p.horyzont} lat → "
+                f"{UI.formatuj_pln(p.wartosc_koncowa)} "
+                f"(zysk {UI.formatuj_pln(p.zysk)})"
+                for p in reinwestycja.projekcje]
+        if proj:
+            sekcje.append({"tytul": "Projekcja (widełki)", "typ": "lista",
+                           "tresc": proj})
+        sekcje.append({"tytul": "Zastrzeżenie inwestycyjne", "typ": "tekst",
+                       "tresc": reinwestycja.disclaimer})
 
     return sekcje
 
@@ -94,6 +132,8 @@ class _Raport(FPDF):
             self._font = "Helvetica"
 
     def _txt(self, s: str) -> str:
+        # Emoji spoza fontu Arial → czytelny zamiennik (np. gwiazdka rekomendacji).
+        s = s.replace("⭐ ", "» ").replace("⭐", "»")
         # Fallback dla fontów core (latin-1) — zachowaj czytelność bez crasha.
         if self._unicode:
             return s
@@ -127,9 +167,11 @@ class _Raport(FPDF):
 
 
 def generuj_pdf(wynik: WynikOptymalizacji,
-                narracja: Narracja | None = None) -> bytes:
+                narracja: Narracja | None = None,
+                rozbicie=None, reinwestycja=None) -> bytes:
     """Wygeneruj brandowany PDF jako bytes."""
-    sekcje = zbuduj_sekcje(wynik, narracja)
+    sekcje = zbuduj_sekcje(wynik, narracja, rozbicie=rozbicie,
+                           reinwestycja=reinwestycja)
     pdf = _Raport()
     pdf.set_auto_page_break(auto=True, margin=28)
     pdf.add_page()
@@ -152,17 +194,22 @@ def generuj_pdf(wynik: WynikOptymalizacji,
                 pdf.set_x(pdf.l_margin)
                 pdf.multi_cell(0, 5.5, pdf._txt(f"-  {poz}"))
         elif s["typ"] == "tabela":
-            _rysuj_tabele(pdf, s["tresc"])
+            _rysuj_tabele(pdf, s["tresc"], s.get("kolumny"), s.get("szer"))
         pdf.ln(1)
 
     return bytes(pdf.output())
 
 
-def _rysuj_tabele(pdf: _Raport, wiersze: list[dict]) -> None:
+def _rysuj_tabele(pdf: _Raport, wiersze: list[dict],
+                  kolumny: list[str] | None = None,
+                  szer: list[float] | None = None) -> None:
     if not wiersze:
         return
-    kolumny = ["Forma", "Podatek", "Zdrowotna", "ZUS", "Dochód netto", "Status"]
-    szer = [42, 28, 28, 26, 32, 28]
+    if kolumny is None:
+        kolumny = ["Forma", "Podatek", "Zdrowotna", "ZUS", "Dochód netto", "Status"]
+        szer = [42, 28, 28, 26, 32, 28]
+    if szer is None:
+        szer = [186 / len(kolumny)] * len(kolumny)
     # Nagłówek
     pdf.set_font(pdf._font, "B", 9)
     pdf.set_fill_color(*NAVY)

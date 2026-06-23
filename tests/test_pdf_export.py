@@ -49,3 +49,23 @@ def test_generuj_pdf_bez_narracji_nadal_dziala(wynik):
     dane = PDF.generuj_pdf(wynik, narracja=None)
     assert dane[:5] == b"%PDF-"
     assert len(dane) > 1000
+
+
+def test_sekcje_z_waterfall_i_reinwestycja():
+    from optymalizator.models import Dostepnosc
+    from optymalizator.oszczednosci import rozbij_przewage
+    from optymalizator.reinwestycja import oblicz_reinwestycje
+    w = run_optimization(DaneKlienta(przychod=800_000, koszty=30_000,
+                                     stawka_ryczaltu=0.12, poziom_etatu=0.5))
+    spzoo = next(f for f in w.formy if "z o.o" in f.nazwa.lower())
+    jdg = max((f for f in w.formy if "z o.o" not in f.nazwa.lower()
+               and f.dostepnosc == Dostepnosc.DOSTEPNA),
+              key=lambda f: f.dochod_netto)
+    rozb = rozbij_przewage(spzoo, jdg)
+    rein = oblicz_reinwestycje(max(rozb.netto, 1.0), marginalna_stawka=0.12)
+    sekcje = PDF.zbuduj_sekcje(w, None, rozbicie=rozb, reinwestycja=rein)
+    tytuly = " ".join(s["tytul"] for s in sekcje).lower()
+    assert "oszczędno" in tytuly       # waterfall
+    assert "reinwest" in tytuly
+    dane = PDF.generuj_pdf(w, None, rozbicie=rozb, reinwestycja=rein)
+    assert dane[:5] == b"%PDF-"
