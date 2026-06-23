@@ -1,8 +1,7 @@
 """Testy warstwy prezentacji dla waterfalla i reinwestycji (Unit 5/6 update)."""
-import pytest
 
 from optymalizator import ui_components as UI
-from optymalizator.oszczednosci import RozbicieOszczednosci, LiniaOszczednosci
+from optymalizator.oszczednosci import LiniaOszczednosci, RozbicieOszczednosci
 from optymalizator.reinwestycja import oblicz_reinwestycje
 
 

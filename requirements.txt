@@ -1,6 +1,7 @@
-streamlit>=1.40
-anthropic>=0.40
-fpdf2>=2.8
-pdfplumber>=0.11
-python-dotenv>=1.0
-pytest>=8.0
+# Wersje przypięte do minora — stabilne zachowanie, łatwe aktualizacje patchy.
+streamlit~=1.58
+anthropic~=0.111
+fpdf2~=2.8
+pdfplumber~=0.11
+python-dotenv~=1.2
+pytest~=9.1

@@ -3,7 +3,7 @@ import pytest
 
 from optymalizator.engine import run_optimization
 from optymalizator.models import DaneKlienta, Dostepnosc
-from optymalizator.oszczednosci import rozbij_przewage, RozbicieOszczednosci
+from optymalizator.oszczednosci import RozbicieOszczednosci, rozbij_przewage
 
 
 def _spzoo(w):

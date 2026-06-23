@@ -22,8 +22,13 @@ Narzędzie jest **bezstanowe**: liczy „tu i teraz" i nie zapisuje danych klien
 - Wspólne rozliczenie małżonków, ulgi (prorodzinna, PIT-0 dla rodzin 4+, IP-Box, IKZE).
 - Poprawny rok składkowy zdrowotny (minimum roczne 5 072,90 zł), formy ZUS (Duży / Mały ZUS Plus / Preferencyjny / Ulga na start / Etat-zbieg).
 - Sp. z o.o. z jawnym założeniem wypłaty zysku oraz wyjątkiem jednoosobowej spółki.
+- **Danina solidarnościowa** 4% ponad 1 mln zł (skala/liniowy; nie ryczałt ani dywidenda).
+- **Import KPiR z PDF** — automatyczne wypełnienie przychodu/kosztów (do potwierdzenia), z kontrolą spójności księgowej.
+- **Sp. z o.o. jako pakiet „spółka + etat"** + **waterfall oszczędności** (brutto, z linią etatu) i **moduł reinwestycji** III filaru (IKE/IKZE/PPK, projekcja w widełkach).
 - UI Streamlit w brandingu Abacus + eksport brandowanego PDF.
 - Warstwa narracyjna Claude API z graceful degradation (brak klucza/awaria → liczby zostają).
+
+Świadome uproszczenia modelu i miejsca do potwierdzenia przez księgowego: zob. [ZALOZENIA.md](ZALOZENIA.md).
 
 ## Wymagania
 
@@ -53,11 +58,14 @@ set ANTHROPIC_API_KEY=sk-ant-...   # Windows
 Bez klucza narzędzie nadal działa — pokazuje tabelę, werdykt i PDF, a sekcje narracyjne
 oznacza jako niedostępne.
 
-## Testy
+## Testy i jakość
 
 ```bash
-pytest -q
+pytest -q          # 82 testy
+ruff check .       # lint
 ```
+
+CI (GitHub Actions) uruchamia lint i testy na każdy push/PR do `main`.
 
 ## Struktura
 
@@ -67,10 +75,13 @@ optymalizator/
   params_2026.py            # stałe podatkowe/składkowe 2026 (jedno miejsce zmiany)
   models.py                 # modele wejścia/wyjścia (dataclasses)
   engine.py                 # run_optimization — deterministyczny rdzeń
+  oszczednosci.py           # waterfall przewagi sp. z o.o. (Unit 7)
+  reinwestycja.py           # alokacja IKE/IKZE/PPK + projekcja (Unit 8)
+  kpir_import.py            # import KPiR z PDF (pdfplumber)
   narracja.py               # warstwa narracyjna Claude API
   ui_components.py          # czyste funkcje prezentacji (testowalne)
   pdf_export.py             # generator brandowanego PDF (fpdf2)
-tests/                      # 44 testy (test-first)
+tests/                      # 82 testy (test-first)
 ```
 
 ## Zastrzeżenie

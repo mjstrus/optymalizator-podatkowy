@@ -2,7 +2,7 @@
 import pytest
 
 from optymalizator import params_2026 as P
-from optymalizator.engine import run_optimization, _zus_spoleczny
+from optymalizator.engine import _zus_spoleczny, run_optimization
 from optymalizator.models import DaneKlienta, FormaZUS, Ulgi
 
 

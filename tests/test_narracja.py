@@ -5,7 +5,7 @@ import pytest
 
 from optymalizator.engine import run_optimization
 from optymalizator.models import DaneKlienta
-from optymalizator.narracja import generuj_narracje, Narracja
+from optymalizator.narracja import generuj_narracje
 
 
 @pytest.fixture

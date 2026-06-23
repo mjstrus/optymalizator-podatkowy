@@ -1,0 +1,20 @@
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B"]
+ignore = [
+    "E501",   # długość linii — kontrolowana, ale nie blokująca
+    "B008",   # wywołania w argumentach domyślnych (Streamlit/dataclass field)
+    "UP042",  # str+Enum jest świadome — ułatwia serializację JSON narracji
+]
+
+[tool.ruff.lint.per-file-ignores]
+# load_dotenv musi wykonać się przed importem modułów (kolejność zamierzona).
+"app.py" = ["E402"]
+# Krótka nazwa `l` w asercjach na listach linii jest tu czytelna.
+"tests/*" = ["E741"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

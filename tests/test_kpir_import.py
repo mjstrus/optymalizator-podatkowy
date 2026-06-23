@@ -3,7 +3,7 @@ import os
 
 import pytest
 
-from optymalizator.kpir_import import parsuj_kpir, kwota_pl, ImportKPiR
+from optymalizator.kpir_import import ImportKPiR, kwota_pl, parsuj_kpir
 
 PROBKA = "kpir - przykład.pdf"
 _ma_probke = os.path.exists(PROBKA)

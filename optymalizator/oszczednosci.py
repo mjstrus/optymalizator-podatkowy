@@ -57,6 +57,6 @@ def rozbij_przewage(spzoo: WynikFormy, jdg: WynikFormy, *,
     if spzoo_malzonek is not None and jdg_malzonek is not None:
         linie += _linie_pary(spzoo_malzonek, jdg_malzonek, prefiks="Małżonek: ")
 
-    netto = round(sum(l.kwota for l in linie), 2)
+    netto = round(sum(linia.kwota for linia in linie), 2)
     return RozbicieOszczednosci(linie=linie, netto=netto,
                                 spzoo_wygrywa=netto > 0)

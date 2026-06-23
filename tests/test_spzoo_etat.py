@@ -2,7 +2,7 @@
 import pytest
 
 from optymalizator import params_2026 as P
-from optymalizator.engine import run_optimization, _oblicz_etat
+from optymalizator.engine import _oblicz_etat, run_optimization
 from optymalizator.models import DaneKlienta
 
 
@@ -34,7 +34,8 @@ def test_pensja_obniza_cit_i_dywidende():
     ze = run_optimization(DaneKlienta(przychod=600_000, koszty=50_000,
                                       poziom_etatu=0.5))
     s_bez, s_ze = _spzoo(bez), _spzoo(ze)
-    # koszt pensji widoczny i obniża zysk → niższy CIT+PIT od dywidendy
+    # bez etatu pakiet jest pusty, z etatem koszt pensji się pojawia
+    assert s_bez.koszt_pensji_w_spolce is None
     pensja = 0.5 * P.MINIMALNE_WYNAGRODZENIE * 12
     assert s_ze.koszt_pensji_w_spolce == pytest.approx(
         pensja + P.ZUS_PRACODAWCA_STAWKA * pensja)

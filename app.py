@@ -25,14 +25,14 @@ if not os.environ.get("ANTHROPIC_API_KEY"):
 
 _KLUCZ_OK = bool(os.environ.get("ANTHROPIC_API_KEY"))
 
-from optymalizator.engine import run_optimization
-from optymalizator.models import DaneKlienta, FormaZUS, Ulgi
-from optymalizator import ui_components as UI
 from optymalizator import params_2026 as P
-from optymalizator.narracja import generuj_narracje
-from optymalizator.pdf_export import generuj_pdf
+from optymalizator import ui_components as UI
+from optymalizator.engine import run_optimization
 from optymalizator.kpir_import import parsuj_kpir
+from optymalizator.models import DaneKlienta, FormaZUS, Ulgi
+from optymalizator.narracja import generuj_narracje
 from optymalizator.oszczednosci import rozbij_przewage
+from optymalizator.pdf_export import generuj_pdf
 from optymalizator.reinwestycja import oblicz_reinwestycje
 
 st.set_page_config(page_title="Optymalizator Podatkowy 2026 — Abacus",
@@ -189,7 +189,11 @@ dane = DaneKlienta(
               ip_box=ip_box, ikze_kwota=ikze),
 )
 
-wynik = run_optimization(dane)
+try:
+    wynik = run_optimization(dane)
+except Exception as e:  # awaria rdzenia nie może zostawić pustego ekranu
+    st.error(f"Nie udało się policzyć form: {e}")
+    st.stop()
 
 # --- Werdykt ----------------------------------------------------------------
 st.success(UI.tekst_werdyktu(wynik))
@@ -206,7 +210,17 @@ for f in wynik.formy:
 
 # --- Warstwa narracyjna (Unit 4) — graceful degradation ---------------------
 st.subheader("Kluczowe uzasadnienie i matryca ryzyk")
-narracja = generuj_narracje(wynik)
+
+
+@st.cache_data(show_spinner="Generuję uzasadnienie…")
+def _narracja_cached(_wynik, sygnatura):
+    # `sygnatura` (hashowalna) wymusza cache po liczbach wyniku; `_wynik`
+    # pomijany w hashowaniu. Dzięki temu ruch suwakiem nie wywołuje API.
+    return generuj_narracje(_wynik)
+
+
+_sygn = tuple((f.nazwa, f.podatek, f.dochod_netto) for f in wynik.formy)
+narracja = _narracja_cached(wynik, _sygn)
 if narracja.dostepna:
     for punkt in narracja.uzasadnienie:
         st.markdown(f"- {punkt}")
@@ -264,11 +278,14 @@ if wynik.werdykt.lower().startswith("sp. z o.o"):
 
 # --- Eksport PDF (Unit 6) ---------------------------------------------------
 st.subheader("Raport dla klienta")
-pdf_bytes = generuj_pdf(wynik, narracja, rozbicie=rozbicie,
-                        reinwestycja=reinwestycja)
-st.download_button("⬇️ Pobierz brandowany PDF", data=pdf_bytes,
-                   file_name="optymalizacja_podatkowa_2026.pdf",
-                   mime="application/pdf", type="primary")
+try:
+    pdf_bytes = generuj_pdf(wynik, narracja, rozbicie=rozbicie,
+                            reinwestycja=reinwestycja)
+    st.download_button("⬇️ Pobierz brandowany PDF", data=pdf_bytes,
+                       file_name="optymalizacja_podatkowa_2026.pdf",
+                       mime="application/pdf", type="primary")
+except Exception as e:
+    st.error(f"Nie udało się wygenerować PDF: {e}. Liczby powyżej są kompletne.")
 
 st.caption(f"Minimum składki zdrowotnej 2026: "
            f"{UI.formatuj_pln(P.ZDROWOTNA_MIN_ROCZNA)} · narzędzie bezstanowe, "

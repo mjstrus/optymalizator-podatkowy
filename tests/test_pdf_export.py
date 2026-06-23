@@ -1,10 +1,10 @@
 """Testy Unit 6: generator brandowanego PDF."""
 import pytest
 
+from optymalizator import pdf_export as PDF
 from optymalizator.engine import run_optimization
 from optymalizator.models import DaneKlienta
 from optymalizator.narracja import Narracja
-from optymalizator import pdf_export as PDF
 
 
 @pytest.fixture

@@ -10,9 +10,9 @@ import os
 from fpdf import FPDF
 from fpdf.enums import XPos, YPos
 
+from . import ui_components as UI
 from .models import Dostepnosc, WynikOptymalizacji
 from .narracja import Narracja
-from . import ui_components as UI
 
 # Branding (RGB)
 NAVY = (13, 27, 42)        # #0d1b2a
@@ -214,7 +214,7 @@ def _rysuj_tabele(pdf: _Raport, wiersze: list[dict],
     pdf.set_font(pdf._font, "B", 9)
     pdf.set_fill_color(*NAVY)
     pdf.set_text_color(255, 255, 255)
-    for k, w in zip(kolumny, szer):
+    for k, w in zip(kolumny, szer, strict=False):
         pdf.cell(w, 7, pdf._txt(k), border=0, fill=True, align="C")
     pdf.ln()
     # Wiersze
@@ -222,6 +222,6 @@ def _rysuj_tabele(pdf: _Raport, wiersze: list[dict],
     pdf.set_font(pdf._font, "", 9)
     for i, r in enumerate(wiersze):
         pdf.set_fill_color(*( (240, 243, 248) if i % 2 == 0 else (255, 255, 255)))
-        for k, w in zip(kolumny, szer):
+        for k, w in zip(kolumny, szer, strict=False):
             pdf.cell(w, 6.5, pdf._txt(str(r.get(k, ""))), border=0, fill=True)
         pdf.ln()

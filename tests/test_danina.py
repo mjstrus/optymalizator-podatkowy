@@ -2,7 +2,7 @@
 import pytest
 
 from optymalizator import params_2026 as P
-from optymalizator.engine import run_optimization, _danina
+from optymalizator.engine import _danina, run_optimization
 from optymalizator.models import DaneKlienta
 
 

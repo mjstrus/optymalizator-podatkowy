@@ -29,8 +29,8 @@ def formatuj_pln_signed(kwota: float) -> str:
 def wiersze_waterfall(rozbicie) -> list[dict]:
     """Wiersze waterfalla oszczędności (Unit 7) — z jawnym znakiem kwoty."""
     wiersze = [
-        {"Pozycja": l.etykieta, "Kwota": formatuj_pln_signed(l.kwota)}
-        for l in rozbicie.linie if l.widoczna
+        {"Pozycja": linia.etykieta, "Kwota": formatuj_pln_signed(linia.kwota)}
+        for linia in rozbicie.linie if linia.widoczna
     ]
     wiersze.append({"Pozycja": "Oszczędność netto (rocznie)",
                     "Kwota": formatuj_pln_signed(rozbicie.netto)})

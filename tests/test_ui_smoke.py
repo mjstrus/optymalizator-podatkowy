@@ -1,11 +1,9 @@
 """Testy Unit 5: warstwa prezentacji (bez uruchamiania serwera Streamlit)."""
 import py_compile
 
-import pytest
-
-from optymalizator.engine import run_optimization
-from optymalizator.models import DaneKlienta, Dostepnosc
 from optymalizator import ui_components as UI
+from optymalizator.engine import run_optimization
+from optymalizator.models import DaneKlienta
 
 
 def test_formatuj_pln():

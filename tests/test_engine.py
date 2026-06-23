@@ -7,7 +7,7 @@ import pytest
 
 from optymalizator import params_2026 as P
 from optymalizator.engine import run_optimization
-from optymalizator.models import DaneKlienta, FormaZUS, Dostepnosc
+from optymalizator.models import DaneKlienta, Dostepnosc, FormaZUS
 
 
 def _forma(wynik, fragment):

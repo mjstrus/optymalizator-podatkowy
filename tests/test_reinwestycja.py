@@ -2,7 +2,7 @@
 import pytest
 
 from optymalizator import params_2026 as P
-from optymalizator.reinwestycja import oblicz_reinwestycje, WynikReinwestycji
+from optymalizator.reinwestycja import WynikReinwestycji, oblicz_reinwestycje
 
 
 def _alok(w, nazwa):

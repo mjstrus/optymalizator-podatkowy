@@ -8,12 +8,11 @@ import pytest
 from optymalizator import params_2026 as P
 from optymalizator.models import (
     DaneKlienta,
+    Dostepnosc,
     FormaZUS,
     WynikFormy,
     WynikOptymalizacji,
-    Dostepnosc,
 )
-
 
 # --- Stałe 2026 (regresja na liczbach) --------------------------------------
 
