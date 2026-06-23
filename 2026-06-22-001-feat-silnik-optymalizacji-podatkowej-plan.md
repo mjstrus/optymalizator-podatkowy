@@ -27,17 +27,14 @@ Podczas sesji doradczych (listopad–grudzień, pilotaż wrzesień 2026) doradca
 - R7. Wyjście zgodne z kontraktem UI: tabela porównawcza, werdykt matematyczny, max 3 punkty uzasadnienia, matryca ryzyk; styl menedżerski per „Pan/Pani".
 - R8. Warstwa LLM generuje wyłącznie narrację z gotowych liczb — nie wykonuje obliczeń.
 - R9. Walidacja danych wejściowych: przy braku przychodu / kosztów / kodu PKWiU lub charakteru usług — zatrzymanie i konkretna ankieta uzupełniająca.
-- ~~R10. „Profil klienta": zapis i odczyt parametrów klienta (Supabase).~~ **USUNIĘTE ze scope'u (2026-06-22):** narzędzie działa „tu i teraz", bez trwałego zapisu danych klientów. Brak Supabase i jakiejkolwiek persystencji — dane wprowadzane na sesji, wynik to ekran + PDF.
+- R10. „Profil klienta": zapis i odczyt parametrów klienta (Supabase).
 - R11. Brandowany PDF (styl Abacus, gradient navy `#0d1b2a → #1b2d45`) jako deliverable sesji.
-- R12. Danina solidarnościowa: 4% od nadwyżki dochodu ponad 1 000 000 zł — naliczana dla skali i liniowego; **wyłączona dla ryczałtu i dywidendy sp. z o.o.** (dodane 2026-06-22). Wpływa na ranking przy wysokich dochodach.
 
 ## Granice scope'u
 
 - **Estoński CIT i ewentualna piąta forma — poza MVP.** Dopracowany prompt obejmuje 4 formy; wcześniejszy stress-test narzędzia wspominał o 5 formach i trzech rankingach. Do potwierdzenia przed implementacją (zob. Otwarte pytania). MVP planowany pod 4 formy.
 - Brak multi-user / auth — narzędzie jednostanowiskowe na sesje doradcze.
-- **Brak jakiejkolwiek persystencji danych (decyzja 2026-06-22).** Bez bazy, bez Supabase, bez „Profilu klienta" — narzędzie weryfikuje dane wprowadzone na sesji i zwraca wynik + PDF. Eliminuje to ryzyka RODO/przechowywania danych klientów.
-- Brak automatycznej integracji z Enova365 / Frappe CRM — dane wprowadzane ręcznie lub importowane z PDF KPiR (Unit 7). Integracja API to osobny etap.
-- **Import KPiR tylko z PDF tekstowych** (eksport z programu księgowego). Skany wymagałyby OCR — poza scope.
+- Brak automatycznej integracji z Enova365 / Frappe CRM — dane wprowadzane ręcznie lub z „Profilu klienta". Integracja to osobny etap.
 - Brak automatycznego pobierania stawki ryczałtu z PKWiU — doradca wskazuje stawkę (z podpowiedzią).
 - Brak rozliczeń wstecznych / korekt — narzędzie liczy prognozę na rok 2026.
 
@@ -64,7 +61,7 @@ Podczas sesji doradczych (listopad–grudzień, pilotaż wrzesień 2026) doradca
 - **Rozdział silnik / narracja / UI**: deterministyczny rdzeń, warstwa LLM tylko narracyjna, Streamlit jako prezentacja. Uzasadnienie: poprawność liczb i testowalność rdzenia niezależnie od modelu i UI.
 - **Stałe 2026 w jednym module**: wszystkie parametry roczne w jednym `params_2026.py`/strukturze, by aktualizacja na 2027 była jednym miejscem zmiany.
 - **Minimum zdrowotnej jako stała 5 072,90 zł**: zaszyta i pokryta testem, by model ani kod nie policzył 12×432,54.
-- ~~**Supabase po HTTPS (`supabase-py`)**~~ **Nieaktualne (2026-06-22): brak persystencji — żadnej bazy.** Narzędzie jest bezstanowe między sesjami.
+- **Supabase po HTTPS (`supabase-py`)**: zgodnie z ograniczeniem portu 5432 z wcześniejszych narzędzi.
 - **Graceful degradation warstwy LLM**: jeśli API niedostępne, narzędzie i tak pokazuje tabelę + werdykt (liczby), a sekcje narracyjne oznacza jako niedostępne.
 
 ## Otwarte pytania
@@ -89,7 +86,7 @@ Podczas sesji doradczych (listopad–grudzień, pilotaż wrzesień 2026) doradca
 
 ```mermaid
 flowchart TD
-    A[Dane wejściowe na sesji] --> V{Walidacja R9}
+    A[Dane wejściowe / Profil klienta] --> V{Walidacja R9}
     V -- braki --> ANK[Ankieta uzupełniająca]
     V -- ok --> S[Negative screening R2]
     S --> E[run_optimization: 4 formy R1]
@@ -103,7 +100,7 @@ flowchart TD
 
 ## Implementation Units
 
-- [x] **Unit 1: Stałe podatkowe 2026 + modele danych**
+- [ ] **Unit 1: Stałe podatkowe 2026 + modele danych**
 
 **Cel:** Jedno źródło prawdy dla parametrów 2026 oraz typowane modele wejścia/wyjścia silnika.
 
@@ -132,7 +129,7 @@ flowchart TD
 
 ---
 
-- [x] **Unit 2: Silnik deterministyczny `run_optimization`**
+- [ ] **Unit 2: Silnik deterministyczny `run_optimization`**
 
 **Cel:** Czysta funkcja licząca cztery formy, screening, preferencje i werdykt — bez UI i bez LLM.
 
@@ -174,13 +171,36 @@ flowchart TD
 
 ---
 
-- [x] ~~**Unit 3: Profil klienta + Supabase (CRUD)**~~ **USUNIĘTE ze scope'u (2026-06-22).**
+- [ ] **Unit 3: Profil klienta + Supabase (CRUD)**
 
-Decyzja: narzędzie nie zapisuje danych — weryfikacja „tu i teraz" + PDF. Brak Supabase, brak `profil_repo.py`, brak persystencji. R10 wycofane. Jeśli w przyszłości pojawi się potrzeba współdzielenia profili między stanowiskami, wraca jako osobny etap (preferowany lokalny SQLite za interfejsem repozytorium przed chmurą).
+**Cel:** Zapis/odczyt parametrów klienta, by doradca nie wprowadzał wszystkiego ręcznie na sesji.
+
+**Wymagania:** R10
+
+**Zależności:** Unit 1
+
+**Pliki:**
+- Stwórz: `optymalizator/profil_repo.py`
+- Test: `tests/test_profil_repo.py` (z mockiem klienta Supabase)
+
+**Podejście:**
+- Dostęp przez `supabase-py` po HTTPS (port 5432 zablokowany — jak w „Generator masowych pism").
+- NIP jako klucz unikalny profilu (spójnie z bazą klientów z innych narzędzi).
+- Mapowanie profil ↔ `DaneKlienta`.
+
+**Wzorce do naśladowania:**
+- Warstwa Supabase z „Generator masowych pism" (klient HTTPS, import po NIP).
+
+**Scenariusze testowe:**
+- Zapis nowego profilu i odczyt po NIP zwraca te same dane.
+- Odczyt nieistniejącego NIP zwraca None / pusty wynik bez wyjątku.
+
+**Weryfikacja:**
+- CRUD działa na mocku; realna integracja odroczona do testu z instancją Supabase.
 
 ---
 
-- [x] **Unit 4: Warstwa narracyjna LLM**
+- [ ] **Unit 4: Warstwa narracyjna LLM**
 
 **Cel:** Wygenerować „Kluczowe Uzasadnienie" (max 3 punkty) i „Matrycę Ryzyk" z gotowych liczb, w stylu per „Pan/Pani".
 
@@ -209,13 +229,13 @@ Decyzja: narzędzie nie zapisuje danych — weryfikacja „tu i teraz" + PDF. Br
 
 ---
 
-- [x] **Unit 5: UI Streamlit**
+- [ ] **Unit 5: UI Streamlit**
 
-**Cel:** Formularz wejściowy + checkboxy ulg, render tabeli porównawczej i werdyktu w brandingu Abacus.
+**Cel:** Formularz wejściowy + dropdown „Profil klienta" + checkboxy ulg, render tabeli porównawczej i werdyktu w brandingu Abacus.
 
-**Wymagania:** R3, R7, R9
+**Wymagania:** R3, R7, R9, R10
 
-**Zależności:** Unit 1, 2, 4
+**Zależności:** Unit 1, 2, 3, 4
 
 **Pliki:**
 - Stwórz: `app.py`
@@ -223,7 +243,8 @@ Decyzja: narzędzie nie zapisuje danych — weryfikacja „tu i teraz" + PDF. Br
 - Test: `tests/test_ui_smoke.py` (smoke / import)
 
 **Podejście:**
-- Formularz: przychód, koszty, charakter usług / stawka ryczałtu, forma ZUS (radio), flagi (były pracodawca, wspólne rozliczenie, jednoosobowa sp. z o.o., art. 176), checkboxy ulg, dochód małżonka, dochód z poprzedniego roku (dla Małego ZUS Plus).
+- Formularz: przychód, koszty, charakter usług / stawka ryczałtu, forma ZUS (radio), flagi (były pracodawca, wspólne rozliczenie, jednoosobowa sp. z o.o., art. 176), checkboxy ulg, dochód małżonka.
+- „Profil klienta" — dropdown z Supabase (Unit 3); wybór wypełnia formularz.
 - Walidacja R9: przy brakach — komunikat + konkretna ankieta, bez liczenia.
 - Render: tabela 4 form, werdykt, sekcje narracyjne z Unit 4; gradient navy `#0d1b2a → #1b2d45`.
 
@@ -233,13 +254,14 @@ Decyzja: narzędzie nie zapisuje danych — weryfikacja „tu i teraz" + PDF. Br
 **Scenariusze testowe:**
 - Wprowadzenie kompletnych danych → tabela + werdykt renderują się.
 - Brak kosztów / PKWiU → ankieta, brak obliczeń.
+- Wybór profilu z dropdownu wypełnia pola.
 
 **Weryfikacja:**
 - Aplikacja startuje, happy-path renderuje wynik, walidacja blokuje braki.
 
 ---
 
-- [x] **Unit 6: Generator brandowanego PDF**
+- [ ] **Unit 6: Generator brandowanego PDF**
 
 **Cel:** Wyeksportować wynik sesji jako brandowany PDF (Abacus) — deliverable dla klienta.
 
@@ -266,43 +288,10 @@ Decyzja: narzędzie nie zapisuje danych — weryfikacja „tu i teraz" + PDF. Br
 **Weryfikacja:**
 - PDF otwiera się, zawiera komplet sekcji i branding.
 
----
-
-- [x] **Unit 7: Import KPiR z PDF** (dodany 2026-06-22 na życzenie użytkownika)
-
-**Cel:** Wczytać roczne podsumowanie KPiR (PDF) i automatycznie wypełnić przychód i koszty, by doradca nie przepisywał liczb ręcznie na sesji.
-
-**Wymagania:** wsparcie R9 (przyspiesza wprowadzanie danych, ale doradca potwierdza)
-
-**Zależności:** Unit 5
-
-**Pliki:**
-- Stwórz: `optymalizator/kpir_import.py` (`parsuj_kpir(zrodlo) -> ImportKPiR`)
-- Test: `tests/test_kpir_import.py` (na realnej próbce, `skipif` gdy brak pliku)
-
-**Podejście:**
-- `pdfplumber` czyta tekst PDF; parsujemy **etykietowany blok podsumowania** (przychód, koszty z uwzgl. różnicy reman., dochód, wydatki, zakupy, remanent), NIE rozbicie miesięczne (siatka miesięczna bywa nieczytelna przy ekstrakcji).
-- Dopasowanie **tolerancyjne** (regex na fragmentach) — odporne na zniekształcenia fontów (np. „Przychód"→„Przvch?d") i różne układy programów księgowych.
-- Mieszane separatory (`0,00` / `0.00`, spacja jako tysiące) obsłużone w `kwota_pl`.
-- **Kontrola spójności księgowej**: przychód − koszty = dochód → flaga `spojnosc`; rozjazd → ostrzeżenie.
-- **Parser proponuje, doradca potwierdza** — wartości trafiają do pól formularza (`st.session_state`) do edycji przed liczeniem; brak cichego wpływu na rekomendację.
-- Graceful: złe wejście / skan (brak tekstu) → `ostrzezenia`, bez wyjątku; ręczne wprowadzanie nadal działa.
-
-**Scenariusze testowe:**
-- Realna próbka → przychód 5 207 580,87; koszty (z reman.) 4 635 139,45; dochód 572 441,42.
-- Kontrola spójności = True, brak ostrzeżeń.
-- Pełny odczyt podsumowania (wydatki, zakupy, koszty uz. przychodu, różnica remanentowa).
-- Wejście niebędące PDF → ImportKPiR z ostrzeżeniem, bez crasha.
-
-**Weryfikacja:**
-- Import wypełnia pola; doradca widzi liczby i status spójności; może je nadpisać.
-
-**Uwaga o scope:** „pełny odczyt" dotyczy etykietowanego podsumowania (wszystkie sumy roczne) — rozbicie miesięcznych pozycji nie jest wiarygodnie odzyskiwalne z tego typu eksportu i nie jest potrzebne optymalizatorowi (liczą się sumy roczne).
-
 ## Wpływ systemowy
 
-- **Graf interakcji:** UI → engine → narracja → pdf. Narzędzie bezstanowe, brak warstwy danych.
-- **Propagacja błędów:** błąd LLM nie może wywrócić liczenia ani PDF (graceful degradation narracji).
+- **Graf interakcji:** UI → engine → narracja → pdf; profil_repo czytany przy starcie i przy wyborze klienta.
+- **Propagacja błędów:** błąd LLM nie może wywrócić liczenia ani PDF; błąd Supabase nie blokuje ręcznego wprowadzania danych.
 - **Ryzyka cyklu życia stanu:** stan formularza w `st.session_state`; uwaga na nadpisanie pól przy wyborze profilu.
 - **Parytet API:** kontrakt `WynikOptymalizacji` współdzielony przez UI i PDF — jedna zmiana, oba konsumenty.
 
@@ -320,14 +309,164 @@ Decyzja: narzędzie nie zapisuje danych — weryfikacja „tu i teraz" + PDF. Br
 
 ## Fazowe dostarczanie
 
-- **Faza 1 (rdzeń):** Unit 1 + Unit 2 — silnik z testami; już użyteczny do walidacji liczb (np. odpalany lokalnie/CLI). ✅ **UKOŃCZONE** (30 testów przechodzi).
-- **Faza 2 (sesja):** Unit 5 — UI Streamlit; doradca liczy na sesji (bez profili/persystencji).
-- **Faza 3 (deliverable):** Unit 4 + Unit 6 — narracja i brandowany PDF. ✅ **UKOŃCZONE** (fpdf2, font Arial Unicode, graceful degradation narracji).
-
-> **Status końcowy (2026-06-22):** wszystkie Unity w scope (1, 2, 4, 5, 6) zaimplementowane test-first, 44 testy przechodzą. Unit 3 (Supabase) usunięty świadomą decyzją. Stack: Python 3.12, dataclasses (rdzeń bez zależności), Streamlit (UI), anthropic SDK (narracja), fpdf2 (PDF). Uruchomienie: `.venv\Scripts\streamlit run app.py`.
+- **Faza 1 (rdzeń):** Unit 1 + Unit 2 — silnik z testami; już użyteczny do walidacji liczb (np. odpalany lokalnie/CLI).
+- **Faza 2 (sesja):** Unit 3 + Unit 5 — UI z profilami; doradca może liczyć na sesji.
+- **Faza 3 (deliverable):** Unit 4 + Unit 6 — narracja i brandowany PDF.
 
 ## Źródła i referencje
 
 - Dokument źródłowy: dopracowany prompt „Silnik Optymalizacji Podatkowej 2026" (pełna wersja z tej sesji).
 - Parametry 2026: ZUS, Obwieszczenie MF z 12.12.2025 (M.P. poz. 1274), obwieszczenia GUS.
 - Wzorce ekosystemu Abacus: `run_audit` (audytor KPiR), `symfonia_year_end_auditor.py`, Generator Sprawozdań Zarządu, Generator masowych pism, Analyzer Oszczędności.
+
+---
+
+# Aktualizacja #2 (2026-06-22): Prezentacja oszczędności sp. z o.o. + reinwestycja
+
+Ta sekcja rozszerza i nadpisuje fragmenty powyżej. Decyzje poniżej są zatwierdzone.
+
+## Zatwierdzone decyzje
+
+- **Oszczędność ZUS prezentowana BRUTTO**: pełny ZUS społeczny z JDG pokazywany jako zniknięta pozycja (przewaga spółki), z **osobną, obowiązkową linią „ZUS od etatu w spółce"** na tym samym widoku. Guardrail: linia etatu nie może zostać pominięta — inaczej liczba brutto wprowadza w błąd.
+- **Rekomendowana struktura przy wygranej spółki = 2-osobowa sp. z o.o. + wspólnik(y) na części etatu** (np. 1/2). Etat rozwiązuje NFZ i odbudowuje część emerytury, i jest warunkiem działania IKZE oraz PPK.
+- **Połowa „pracująca" oszczędności → mix IKE + IKZE wg progu** pracownika, z limitami 2026.
+- Oszczędność ZUS małżonka traktowana analogicznie (brutto), gdy małżonek wnoszony do spółki.
+
+## Nowe / rozszerzone wymagania
+
+- **R6 (rozszerzone):** sp. z o.o. modelowana jako pakiet „spółka + etat". Pensja etatowa jest jednocześnie: kosztem spółki (obniża CIT i dywidendę), dochodem opodatkowanym skalą u pracownika, oraz podstawą ZUS i zdrowotnej od pensji.
+- **R12:** Silnik zwraca rozbicie każdej formy na składniki (podatek / ZUS społeczny / składka zdrowotna), by policzyć źródła przewagi.
+- **R13:** Gdy rekomendacją jest sp. z o.o. — „waterfall oszczędności": pełny ZUS JDG znika (+) → ZUS od etatu dochodzi (−) → zdrowotna JDG znika (+) → zdrowotna od etatu dochodzi (−) → oszczędność netto. Analogiczny blok dla małżonka, gdy włączony.
+- **R14:** Moduł reinwestycji: 50% oszczędności → IKE/IKZE (mix wg progu, limity 2026), 50% pozostaje gotówką; wzrost „pracującej" połowy prezentowany w widełkach (scenariusze stóp zwrotu, konfigurowalny horyzont); opcjonalnie PPK przy etacie. Obowiązkowy disclaimer „nie stanowi doradztwa inwestycyjnego".
+- **R15:** Przełącznik „małżonek wnoszony do spółki jako wspólnik" — domyślnie wyłączony. Po włączeniu modeluje na poziomie pary: dochód małżonka wchodzi do spółki (zwiększa CIT/dywidendę), jego ZUS z JDG liczony jako oszczędność (brutto), limity IKE/IKZE podwojone.
+
+## Aktualizacja Unit 1 (stałe 2026)
+
+Dodać do `params_2026.py`:
+- Limity trzeciego filaru 2026: IKE 28 260 zł; IKZE (etat / nieprowadzący działalności) 11 304 zł; IKZE (działalność, art. 8 ust. 6) 16 956 zł — używany tylko w wariancie, w którym klient zachowuje JDG.
+- Przeciętne prognozowane wynagrodzenie 9 420 zł (podstawa limitów).
+- PPK: stawki ustawowe (pracownik 2% + pracodawca 1,5% podstawowo; dopłaty państwa: wpłata powitalna i dopłata roczna) — wartości dokładne do potwierdzenia w implementacji.
+- **Pułapka do zaszycia w logice:** wspólnik sp. z o.o. na etacie NIE jest „prowadzącym działalność", więc traci limit IKZE 16 956 i wraca do 11 304 zł.
+
+## Aktualizacja Unit 2 (silnik)
+
+- `WynikFormy` udostępnia składniki (podatek, zus_spoleczny, zdrowotna) — już przewidziane; potwierdzić jako kontrakt publiczny.
+- Dla sp. z o.o. dodać pola pakietu „spółka + etat": pensja_etat, zus_od_etatu, zdrowotna_od_etatu, koszt_pensji_w_spolce, marginalna_stawka_etatu.
+- Sub-funkcja licząca strukturę spółka+etat (pensja jako koszt → niższy CIT/dywidenda; ZUS i zdrowotna od pensji; PIT skali od pensji).
+
+**Dodatkowe scenariusze testowe:**
+- Etat 1/2 płacy minimalnej → ZUS i zdrowotna od etatu policzone od właściwej podstawy.
+- Pensja etatowa obniża podstawę CIT i kwotę dywidendy.
+- Marginalna stawka etatu wyznaczona poprawnie (12% przy niskim etacie).
+
+## Implementation Units (nowe)
+
+- [ ] **Unit 7: Rozbicie przewagi + waterfall oszczędności**
+
+**Cel:** Policzyć i wyeksponować, z czego wynika przewaga sp. z o.o. (podatek vs ZUS vs zdrowotna), w formie waterfalla brutto z osobną linią etatu.
+
+**Wymagania:** R12, R13
+
+**Zależności:** Unit 2
+
+**Pliki:**
+- Stwórz: `optymalizator/oszczednosci.py`
+- Test: `tests/test_oszczednosci.py`
+
+**Podejście:**
+- `rozbij_przewage(wynik_spzoo, wynik_najlepszej_jdg) -> RozbicieOszczednosci` zwraca uporządkowane linie: ZUS JDG (+), ZUS od etatu (−), zdrowotna JDG (+), zdrowotna od etatu (−), różnica podatku, netto.
+- Guardrail kodowy: linia „ZUS od etatu" zawsze obecna w wyniku, nawet gdy 0 (z flagą widoczności true).
+- Analogiczny blok dla małżonka, gdy R15 włączone.
+
+**Scenariusze testowe:**
+- Spółka wygrywa → suma linii waterfalla = różnica netto względem najlepszej JDG.
+- ZUS od etatu niezerowy i obecny jako osobna linia.
+- Z włączonym małżonkiem → drugi blok oszczędności policzony.
+
+**Weryfikacja:** Rozbicie sumuje się do różnicy netto; linia etatu nigdy nie znika.
+
+---
+
+- [ ] **Unit 8: Moduł reinwestycji IKE/IKZE/PPK**
+
+**Cel:** Pokazać, co dzieje się z oszczędnością: połowa do gotówki, połowa „pracuje" w trzecim filarze, w widełkach.
+
+**Wymagania:** R14
+
+**Zależności:** Unit 7
+
+**Pliki:**
+- Stwórz: `optymalizator/reinwestycja.py`
+- Test: `tests/test_reinwestycja.py`
+
+**Podejście:**
+- Podział oszczędności 50/50: gotówka vs filar.
+- Alokacja filaru wg progu (reguła domyślna): marginalna stawka etatu 32% lub liniowy → najpierw IKZE do limitu, nadwyżka na IKE; stawka 12% → głównie IKE, IKZE tylko do wysokości realnego odliczenia. Twarde ograniczenia: IKE ≤ 28 260, IKZE ≤ 11 304 na osobę (×2 para); odliczenie IKZE ≤ dochód skali z etatu; nadwyżka ponad limity wraca do gotówki.
+- Projekcja: wzrost „pracującej" połowy w widełkach (np. realne 4% i 6%), horyzont konfigurowalny; wynik jako zakres, nie pojedyncza liczba.
+- PPK: opcjonalne, aktywne tylko gdy etat = TRUE; stawki ustawowe + dopłaty państwa; część pracodawcy jako koszt spółki.
+- Disclaimer „nie stanowi doradztwa inwestycyjnego" zwracany razem z wynikiem (do wyświetlenia w UI i PDF).
+
+**Scenariusze testowe:**
+- Niski etat (12%) → alokacja głównie na IKE.
+- Wysoki etat / liniowy → IKZE wypełnione w pierwszej kolejności.
+- Oszczędność > suma limitów → nadwyżka pozostaje w gotówce.
+- Para (R15) → limity podwojone.
+- Brak etatu → IKZE bez wartości odliczenia, kierowanie na IKE; PPK niedostępne.
+
+**Weryfikacja:** Alokacja respektuje limity i regułę progu; projekcja zwraca zakres z disclaimerem.
+
+## Aktualizacja Unit 5 i Unit 6 (UI + PDF)
+
+- Render waterfalla oszczędności (Unit 7) z widoczną linią etatu.
+- Sekcja reinwestycji (Unit 8): podział 50/50, alokacja IKE/IKZE, widełki projekcji, opcjonalne PPK.
+- Przełącznik „małżonek wnoszony do spółki" (R15) w formularzu.
+- Disclaimer inwestycyjny w stopce PDF i pod sekcją reinwestycji w UI.
+
+## Dodatkowe ryzyka
+
+- Struktura 2-osobowa bez realnego drugiego wspólnika (układy typu 99/1) bywa kwestionowana przez ZUS — wyświetlać razem z kwotą oszczędności.
+- Projekcja inwestycyjna jest ilustracją; biuro nie świadczy doradztwa inwestycyjnego — disclaimer obowiązkowy.
+- Utrata wyższego limitu IKZE (16 956 → 11 304) po przejściu z JDG na etat w spółce.
+- Oszczędność ZUS oznacza niższą emeryturę z ZUS — częściowo nadrabianą etatem i reinwestycją; pokazać jako kontekst, nie ukrywać.
+
+---
+
+# Aktualizacja #3 (2026-06-22): Tryb prezentacji — rekomendacje, porównania, pokrętła
+
+Rozstrzygnięcie sposobu, w jaki decyzje trafiają do interfejsu. Zasada nadrzędna: nie zamieniać każdej decyzji w pytanie ani w osobny wariant (eksplozja kombinacji i nieczytelny raport). Rozdzielamy decyzje na trzy kategorie.
+
+## Kategoryzacja decyzji
+
+**A. Domyślne rekomendacje (bez wyboru, z widocznym uzasadnieniem):**
+- Prezentacja oszczędności ZUS: zawsze waterfall brutto z obowiązkową linią etatu (z definicji pokazuje brutto i netto naraz). NIE jest przełącznikiem — przełącznik odtworzyłby tryb „schowaj etat".
+- Alokacja połowy „pracującej": „mix IKE+IKZE wg progu" jako rekomendacja wyróżniona.
+
+**B. Porównanie obok siebie (realny trade-off, który klient chce zobaczyć):**
+- IKE vs IKZE: liczone trzy alokacje na tych samych danych — IKE-only, IKZE-only, mix wg progu. Mix oznaczony jako rekomendowany; dwa czyste warianty jako materiał do rozmowy. W PDF wersja kompaktowa (rekomendacja + skrót porównania), pełne porównanie w UI.
+
+**C. Pokrętła doradcy (przeliczają wynik na żywo; zależne od konkretnego klienta):**
+- Małżonek wnoszony do spółki: wł/wył (domyślnie wył).
+- Poziom etatu wspólnika: 1/4, 1/2 (domyślnie), 3/4, pełny.
+- Proporcja podziału oszczędności: domyślnie 50/50, regulowana.
+- Stopa zwrotu projekcji: domyślnie dwa scenariusze 4% i 6% realnie; regulacja ograniczona do zakresu 2–8% realnie (twardy limit, by uniknąć fantazyjnych wyników).
+
+## Nowe / rozszerzone wymagania
+
+- **R14 (rozszerzone):** moduł reinwestycji liczy trzy alokacje (IKE-only / IKZE-only / mix) i zwraca je razem, z oznaczeniem mix jako rekomendacji. Stopa zwrotu i proporcja podziału są parametrami wejścia, nie stałymi.
+- **R16:** Parametry sytuacyjne (małżonek, poziom etatu, proporcja podziału, stopa zwrotu) są wejściami sterowanymi z UI; każda zmiana przelicza wynik bez przeładowania. Stopa zwrotu ograniczona do 2–8% realnie.
+- **R17:** Rozdział widoku: UI pokazuje pełne porównanie IKE/IKZE i wszystkie pokrętła; PDF pokazuje wynik dla aktualnych ustawień + kompaktowe porównanie IKE/IKZE, bez ekspozycji pokręteł (czysty, 4-stronicowy deliverable).
+
+## Wpływ na Unity
+
+- **Unit 5 (UI):** dodać pokrętła kategorii C (małżonek, poziom etatu, proporcja, stopa zwrotu z ograniczonym suwakiem), render porównania IKE/IKZE (trzy alokacje, mix wyróżniony), przeliczanie na żywo. Waterfall ZUS bez przełącznika.
+- **Unit 6 (PDF):** render rekomendacji (mix) + kompaktowe porównanie IKE/IKZE; odzwierciedla aktualne ustawienia pokręteł; bez samych pokręteł; disclaimer inwestycyjny w stopce.
+- **Unit 8 (reinwestycja):** `oblicz_reinwestycje(oszczednosc, marginalna_stawka, proporcja, stopy_zwrotu, horyzont, limity) -> WynikReinwestycji` zwracający trzy alokacje + projekcje w widełkach. Stopa zwrotu walidowana do 2–8% realnie. Proporcja i stopa jako parametry, nie stałe.
+
+**Dodatkowe scenariusze testowe (Unit 8):**
+- Trzy alokacje policzone na tych samych danych; mix oznaczony jako rekomendowany.
+- Stopa zwrotu poza zakresem 2–8% → odrzucona/przycięta do granicy.
+- Zmiana proporcji podziału (np. 60/40) → poprawnie przeliczone obie połowy.
+
+## Zasada projektowa do utrwalenia
+
+Domyślne tam, gdzie jest jasna odpowiedź; porównanie tam, gdzie jest realny trade-off; pokrętło tam, gdzie decyduje sytuacja klienta. Nowe opcje konfiguracyjne dodawać tylko po przejściu tego testu — inaczej rosną kombinacje i raport traci czytelność.

@@ -51,6 +51,9 @@ class DaneKlienta:
     jednoosobowa_spzoo: bool = False
     art_176: bool = False                  # ścieżka art. 176 KSH
     wyplata_dywidendy_pct: float = 1.0     # założenie wypłaty zysku (R6)
+    # Sp. z o.o. jako pakiet „spółka + etat" (R6 rozszerzone). Ułamek płacy
+    # minimalnej jako pensja wspólnika; 0.0 = czysta dywidenda (bez etatu).
+    poziom_etatu: float = 0.0
 
     ulgi: Ulgi = field(default_factory=Ulgi)
 
@@ -67,11 +70,30 @@ class DaneKlienta:
             raise ValueError("Dochód z poprzedniego roku nie może być ujemny.")
         if not 0.0 <= self.wyplata_dywidendy_pct <= 1.0:
             raise ValueError("Wypłata dywidendy musi być w zakresie 0–1.")
+        if not 0.0 <= self.poziom_etatu <= 1.0:
+            raise ValueError("Poziom etatu musi być w zakresie 0–1.")
+
+
+@dataclass
+class WynikEtat:
+    """Rozliczenie pensji wspólnika na etacie w sp. z o.o."""
+    pensja_brutto: float
+    zus_pracownik: float
+    zus_pracodawca: float
+    zdrowotna: float
+    pit: float
+    netto: float
+    marginalna_stawka: float
+    koszt_pracodawcy: float                 # pensja brutto + ZUS pracodawcy
 
 
 @dataclass
 class WynikFormy:
-    """Wynik dla jednej formy opodatkowania."""
+    """Wynik dla jednej formy opodatkowania.
+
+    Składniki (podatek / zdrowotna / zus_spoleczny) są kontraktem publicznym
+    (R12) — służą do policzenia źródeł przewagi w rozbiciu oszczędności.
+    """
     nazwa: str
     podatek: float
     zdrowotna: float
@@ -80,6 +102,12 @@ class WynikFormy:
     dostepnosc: Dostepnosc = Dostepnosc.DOSTEPNA
     powod_niedostepnosci: str | None = None
     zalozenia: str | None = None           # np. założenie wypłaty dla sp. z o.o.
+    # Pakiet „spółka + etat" (wypełniane tylko dla sp. z o.o. z etatem)
+    pensja_etat: float | None = None
+    zus_od_etatu: float | None = None
+    zdrowotna_od_etatu: float | None = None
+    koszt_pensji_w_spolce: float | None = None
+    marginalna_stawka_etatu: float | None = None
 
 
 @dataclass

@@ -13,6 +13,7 @@ from .models import (
     DaneKlienta,
     Dostepnosc,
     FormaZUS,
+    WynikEtat,
     WynikFormy,
     WynikOptymalizacji,
 )
@@ -146,13 +147,44 @@ def _oblicz_ryczalt(dane: DaneKlienta, zus: float) -> WynikFormy:
                       round(zus, 2), round(netto, 2))
 
 
+def _oblicz_etat(pensja_brutto: float) -> WynikEtat:
+    """Rozlicz pensję wspólnika na etacie w spółce (składki + PIT skali)."""
+    zus_prac = P.ZUS_PRACOWNIK_STAWKA * pensja_brutto
+    zus_pracodawca = P.ZUS_PRACODAWCA_STAWKA * pensja_brutto
+    podstawa_zdrow = pensja_brutto - zus_prac
+    zdrowotna = P.ZDROWOTNA_ETAT_STAWKA * podstawa_zdrow
+    podstawa_pit = max(0.0, podstawa_zdrow - P.KUP_ETAT_ROCZNE)
+    pit = _podatek_skala_osoba(podstawa_pit)   # zdrowotna nieodliczana (Polski Ład)
+    netto = pensja_brutto - zus_prac - zdrowotna - pit
+    marginalna = P.SKALA_STAWKA_2 if podstawa_pit > P.SKALA_PROG else P.SKALA_STAWKA_1
+    return WynikEtat(
+        pensja_brutto=round(pensja_brutto, 2),
+        zus_pracownik=round(zus_prac, 2),
+        zus_pracodawca=round(zus_pracodawca, 2),
+        zdrowotna=round(zdrowotna, 2),
+        pit=round(pit, 2),
+        netto=round(netto, 2),
+        marginalna_stawka=marginalna,
+        koszt_pracodawcy=round(pensja_brutto + zus_pracodawca, 2),
+    )
+
+
 def _oblicz_spzoo(dane: DaneKlienta) -> WynikFormy:
-    zysk = dane.przychod - dane.koszty
+    # Pakiet „spółka + etat": pensja wspólnika jest kosztem spółki (obniża CIT
+    # i dywidendę), a jednocześnie dochodem opodatkowanym skalą u pracownika.
+    etat = None
+    koszt_etatu = 0.0
+    if dane.poziom_etatu > 0:
+        pensja = dane.poziom_etatu * P.MINIMALNE_WYNAGRODZENIE * 12
+        etat = _oblicz_etat(pensja)
+        koszt_etatu = etat.koszt_pracodawcy
+
+    zysk = dane.przychod - dane.koszty - koszt_etatu
     cit = max(0.0, P.CIT_STAWKA * zysk)
     zysk_po_cit = zysk - cit
     dywidenda = max(0.0, zysk_po_cit) * dane.wyplata_dywidendy_pct
     pit_dyw = P.DYWIDENDA_STAWKA * dywidenda
-    podatek = cit + pit_dyw
+    podatek = cit + pit_dyw + (etat.pit if etat else 0.0)
 
     # Jednoosobowa: wspólnik płaci dodatkową zdrowotną + ZUS (R6).
     if dane.jednoosobowa_spzoo:
@@ -165,15 +197,34 @@ def _oblicz_spzoo(dane: DaneKlienta) -> WynikFormy:
         zus = 0.0
         zalozenia = None
 
+    # Składki od etatu dochodzą do łącznych obciążeń.
+    if etat:
+        zdrowotna += etat.zdrowotna
+        zus += etat.zus_pracownik + etat.zus_pracodawca
+
     zalozenie_wyplaty = f"Założenie wypłaty {dane.wyplata_dywidendy_pct:.0%} zysku dywidendą."
+    if etat:
+        zalozenie_wyplaty += (f" Pakiet spółka + etat ({dane.poziom_etatu:.0%} "
+                              "płacy minimalnej).")
     if dane.art_176:
         zalozenie_wyplaty += " Rozważ ścieżkę art. 176 KSH (świadczenia wspólnika)."
     zalozenia = (zalozenia + " " if zalozenia else "") + zalozenie_wyplaty
 
-    # Netto wspólnika = zysk po CIT − PIT od dywidendy − ZUS − zdrowotna.
-    netto = zysk_po_cit - pit_dyw - zus - zdrowotna
-    return WynikFormy("Sp. z o.o.", round(podatek, 2), round(zdrowotna, 2),
-                      round(zus, 2), round(netto, 2), zalozenia=zalozenia)
+    # Netto = dywidenda po PIT + pensja netto − dodatkowe obciążenia jednoosobowej.
+    netto = zysk_po_cit - pit_dyw + (etat.netto if etat else 0.0)
+    if dane.jednoosobowa_spzoo:
+        netto -= P.SPZOO_JEDNOOSOBOWA_ZDROWOTNA_ROCZNA + P.SPZOO_JEDNOOSOBOWA_ZUS_ROCZNY
+
+    return WynikFormy(
+        "Sp. z o.o.", round(podatek, 2), round(zdrowotna, 2),
+        round(zus, 2), round(netto, 2), zalozenia=zalozenia,
+        pensja_etat=(etat.pensja_brutto if etat else None),
+        zus_od_etatu=(round(etat.zus_pracownik + etat.zus_pracodawca, 2)
+                      if etat else None),
+        zdrowotna_od_etatu=(etat.zdrowotna if etat else None),
+        koszt_pensji_w_spolce=(etat.koszt_pracodawcy if etat else None),
+        marginalna_stawka_etatu=(etat.marginalna_stawka if etat else None),
+    )
 
 
 # --- Ulgi pomocnicze --------------------------------------------------------

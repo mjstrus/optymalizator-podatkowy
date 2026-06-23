@@ -80,6 +80,31 @@ ULGA_4PLUS_LIMIT = 85_528
 # IKZE — roczny limit wpłaty dla prowadzących działalność (1,8× przeciętne).
 IKZE_LIMIT_JDG = round(1.8 * PRZECIETNE_WYNAGRODZENIE, 2)   # 16 956,00
 
+# --- III filar: IKE / IKZE / PPK (limity 2026) ------------------------------
+IKE_LIMIT = 28_260                   # roczny limit wpłat na IKE
+IKZE_LIMIT_ETAT = 11_304             # IKZE etat / nieprowadzący działalności
+# IKZE_LIMIT_JDG (16 956) zdefiniowane wyżej — dla prowadzących działalność.
+# Pułapka: wspólnik sp. z o.o. na etacie NIE jest „prowadzącym działalność",
+# więc obowiązuje go limit IKZE_LIMIT_ETAT (11 304), nie 16 956.
+
+PPK_PRACOWNIK = 0.02                 # wpłata podstawowa pracownika
+PPK_PRACODAWCA = 0.015               # wpłata podstawowa pracodawcy
+PPK_WPLATA_POWITALNA = 250.0         # jednorazowa dopłata państwa
+PPK_DOPLATA_ROCZNA = 240.0           # roczna dopłata państwa
+
+# --- Składki od wynagrodzenia (etat w sp. z o.o.) — stawki ustawowe ---------
+ZUS_EMERYTALNA = 0.0976              # każda strona osobno
+ZUS_RENTOWA_PRACOWNIK = 0.015
+ZUS_RENTOWA_PRACODAWCA = 0.065
+ZUS_CHOROBOWA = 0.0245              # pracownik
+ZUS_WYPADKOWA = 0.0167             # pracodawca (typowa stawka)
+ZUS_FP_FGSP = 0.0245 + 0.0010      # pracodawca: FP 2,45% + FGŚP 0,10%
+ZUS_PRACOWNIK_STAWKA = ZUS_EMERYTALNA + ZUS_RENTOWA_PRACOWNIK + ZUS_CHOROBOWA  # 0,1371
+ZUS_PRACODAWCA_STAWKA = (ZUS_EMERYTALNA + ZUS_RENTOWA_PRACODAWCA
+                         + ZUS_WYPADKOWA + ZUS_FP_FGSP)
+ZDROWOTNA_ETAT_STAWKA = 0.09
+KUP_ETAT_ROCZNE = 250.0 * 12        # standardowe koszty uzyskania (3 000/rok)
+
 # --- Danina solidarnościowa -------------------------------------------------
 # 4% od nadwyżki dochodu ponad 1 mln zł. Dotyczy skali i liniowego;
 # NIE dotyczy ryczałtu ani dywidendy ze sp. z o.o.
