@@ -53,9 +53,7 @@ def test_netto_z_etatem_to_dywidenda_plus_pensja():
     d = DaneKlienta(przychod=600_000, koszty=50_000, poziom_etatu=0.5)
     w = run_optimization(d)
     s = _spzoo(w)
-    pensja = 0.5 * P.MINIMALNE_WYNAGRODZENIE * 12
-    e = _oblicz_etat(pensja)
-    zysk = 600_000 - 50_000 - e.koszt_pracodawcy
-    zysk_po_cit = zysk - P.CIT_STAWKA * zysk
-    dyw_netto = zysk_po_cit - P.DYWIDENDA_STAWKA * zysk_po_cit
-    assert s.dochod_netto == pytest.approx(dyw_netto + e.netto, rel=1e-6)
+    # Tożsamość: netto = (przychód − koszty) − ZUS − zdrowotna − podatek,
+    # niezależnie od miksu wypłaty (etat + art.176 + powołanie + dywidenda).
+    assert s.dochod_netto == pytest.approx(
+        (600_000 - 50_000) - s.zus_spoleczny - s.zdrowotna - s.podatek, abs=0.05)

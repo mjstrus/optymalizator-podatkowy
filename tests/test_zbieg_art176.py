@@ -36,8 +36,9 @@ def test_art176_auto_do_pierwszego_progu():
 
 
 def test_art176_poprawia_netto_spzoo():
+    # Pełna dywidenda (bez kanałów) vs art.176 — art.176 musi dać wyższe netto.
     base = dict(przychod=600_000, koszty=50_000)
-    bez = run_optimization(DaneKlienta(**base))
+    bez = run_optimization(DaneKlienta(**base, art_176=False, powolanie_zarzad=False))
     ze = run_optimization(DaneKlienta(**base, art_176=True))
     assert _forma(ze, "z o.o").dochod_netto > _forma(bez, "z o.o").dochod_netto
 

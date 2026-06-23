@@ -47,13 +47,17 @@ def test_ryczalt_bez_daniny():
 
 
 def test_spzoo_bez_daniny():
+    # Sp. z o.o. nie podlega daninie — podatek = CIT + PIT(art.176) + PIT dywidendy,
+    # bez 4% od nadwyżki ponad 1 mln (inaczej kwota byłaby wyższa).
     d = DaneKlienta(przychod=2_000_000, koszty=0)
     w = run_optimization(d)
     spzoo = _forma(w, "z o.o")
-    zysk = 2_000_000
+    swiadcz = P.SKALA_PROG                       # art.176 domyślnie do I progu
+    zysk = 2_000_000 - swiadcz
     cit = P.CIT_STAWKA * zysk
     pit_dyw = P.DYWIDENDA_STAWKA * (zysk - cit)
-    assert spzoo.podatek == pytest.approx(cit + pit_dyw, rel=1e-6)
+    pit_skala = P.SKALA_STAWKA_1 * swiadcz - P.SKALA_KWOTA_ZMNIEJSZAJACA
+    assert spzoo.podatek == pytest.approx(cit + pit_dyw + pit_skala, rel=1e-6)
 
 
 def test_brak_daniny_ponizej_progu():

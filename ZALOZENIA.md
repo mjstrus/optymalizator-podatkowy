@@ -41,8 +41,13 @@ deterministyczne i przetestowane (82 testy), ale poprawność *reguł* podatkowy
 
 ## Sp. z o.o. (pakiet „spółka + etat")
 
-- Domyślnie liczona z **jawnym założeniem wypłaty 100% zysku dywidendą**
-  (mnożnik efektywny 0,7371). Inny % wypłaty → inny wynik (pokazywane jawnie).
+- **Wypłata zoptymalizowana (nie 100% dywidendy).** Silnik wypełnia I próg skali
+  (12%) najtańszymi kanałami, bo powyżej progu dywidenda (26,3%) bije skalę 32%:
+  1) **art. 176 KSH** — świadczenia wspólnika: skala PIT, bez ZUS i zdrowotnej
+  (domyślnie do 120 000 zł); 2) **wynagrodzenie z powołania zarządu** — skala PIT
+  + 9% zdrowotnej, bez ZUS (wypełnia resztę I progu); 3) **dywidenda** — reszta
+  (CIT 9% + 19%). *Warunki: świadczenia art. 176 muszą być realne, zapisane w
+  umowie spółki i wycenione rynkowo; powołanie wymaga uchwały — do potwierdzenia.*
 - **Etat wspólnika** (poziom 1/4…pełny) jako ułamek **płacy minimalnej**:
   pensja jest kosztem spółki (obniża CIT i dywidendę) i dochodem skali u
   pracownika. Składki ZUS pracownika/pracodawcy wg stawek ustawowych

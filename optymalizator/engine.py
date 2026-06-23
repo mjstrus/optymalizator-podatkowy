@@ -169,82 +169,102 @@ def _oblicz_etat(pensja_brutto: float) -> WynikEtat:
         netto=round(netto, 2),
         marginalna_stawka=marginalna,
         koszt_pracodawcy=round(pensja_brutto + zus_pracodawca, 2),
+        podstawa_pit=round(podstawa_pit, 2),
     )
 
 
 def _oblicz_spzoo(dane: DaneKlienta, dodatkowy_zysk: float = 0.0) -> WynikFormy:
-    # Pakiet „spółka + etat": pensja wspólnika jest kosztem spółki (obniża CIT
-    # i dywidendę), a jednocześnie dochodem opodatkowanym skalą u pracownika.
-    # `dodatkowy_zysk`: zysk z działalności małżonka wniesionej do spółki (R15).
+    """Sp. z o.o. liczona przez ZOPTYMALIZOWANY miks wypłaty (nie 100% dywidendy).
+
+    Kolejność ekstrakcji wypełnia I próg skali (12%) najtańszymi kanałami, bo
+    powyżej progu dywidenda (26,3%) bije skalę 32%:
+      1) art. 176 KSH — świadczenia wspólnika: skala PIT, BEZ ZUS i zdrowotnej,
+      2) wynagrodzenie z powołania zarządu: skala PIT + 9% zdrowotnej, bez ZUS,
+      3) reszta → dywidenda (CIT 9% + 19%).
+    Opcjonalnie pakiet „spółka + etat" (realna pensja z ZUS) oraz wciągnięcie
+    zysku małżonka (R15) przez `dodatkowy_zysk`.
+    """
+    # 1) Opcjonalny etat (realna pensja: ZUS + zdrowotna + podstawa skali)
     etat = None
-    koszt_etatu = 0.0
+    koszt_etatu = etat_podstawa = zus_prac = zus_pracodawca = zdrow_etat = pensja = 0.0
     if dane.poziom_etatu > 0:
         pensja = dane.poziom_etatu * P.MINIMALNE_WYNAGRODZENIE * 12
         etat = _oblicz_etat(pensja)
         koszt_etatu = etat.koszt_pracodawcy
+        etat_podstawa = etat.podstawa_pit
+        zus_prac, zus_pracodawca, zdrow_etat = (
+            etat.zus_pracownik, etat.zus_pracodawca, etat.zdrowotna)
 
     zysk = dane.przychod - dane.koszty + dodatkowy_zysk - koszt_etatu
 
-    # Art. 176 KSH: świadczenia wspólnika to koszt spółki (obniżają CIT i
-    # dywidendę), u wspólnika opodatkowane skalą — BEZ ZUS i BEZ zdrowotnej.
-    swiadczenia = 0.0
-    pit_176 = 0.0
-    if dane.art_176:
-        if dane.art_176_kwota is not None:
-            swiadczenia = min(dane.art_176_kwota, max(0.0, zysk))
-        else:  # auto: do wysokości I progu skali (opodatkowane 12%)
-            swiadczenia = min(max(0.0, zysk), P.SKALA_PROG)
-        zysk -= swiadczenia
-        pit_176 = _podatek_skala_osoba(swiadczenia)
+    # Miejsce w I progu skali pozostałe po pensji etatowej.
+    room_12 = max(0.0, P.SKALA_PROG - etat_podstawa)
 
+    # 2) Art. 176 KSH — najtańszy kanał, domyślnie wypełnia I próg.
+    swiadczenia = 0.0
+    if dane.art_176:
+        art_kwota = (dane.art_176_kwota if dane.art_176_kwota is not None
+                     else room_12)
+        swiadczenia = max(0.0, min(art_kwota, room_12, zysk))
+        zysk -= swiadczenia
+
+    # 3) Powołanie zarządu — wypełnia resztę I progu (skala + 9% zdrowotnej).
+    powolanie = 0.0
+    if dane.powolanie_zarzad:
+        powolanie = max(0.0, min(room_12 - swiadczenia, zysk))
+        zysk -= powolanie
+
+    # 4) Reszta → dywidenda.
     cit = max(0.0, P.CIT_STAWKA * zysk)
     zysk_po_cit = zysk - cit
     dywidenda = max(0.0, zysk_po_cit) * dane.wyplata_dywidendy_pct
     pit_dyw = P.DYWIDENDA_STAWKA * dywidenda
-    podatek = cit + pit_dyw + pit_176 + (etat.pit if etat else 0.0)
 
-    # Jednoosobowa: wspólnik płaci dodatkową zdrowotną + ZUS (R6).
+    # PIT skali liczony ŁĄCZNIE od dochodu wspólnika ze skali (progresja).
+    pit_skala = _podatek_skala_osoba(etat_podstawa + swiadczenia + powolanie)
+    zdrow_powolanie = P.ZDROWOTNA_ETAT_STAWKA * powolanie
+
+    zdrowotna = zdrow_etat + zdrow_powolanie
+    zus = zus_prac + zus_pracodawca
+    zalozenia_jedno = None
     if dane.jednoosobowa_spzoo:
-        zdrowotna = P.SPZOO_JEDNOOSOBOWA_ZDROWOTNA_ROCZNA
-        zus = P.SPZOO_JEDNOOSOBOWA_ZUS_ROCZNY
-        zalozenia = ("Jednoosobowa sp. z o.o.: doliczona składka zdrowotna i ZUS "
-                     "wspólnika.")
-    else:
-        zdrowotna = 0.0
-        zus = 0.0
-        zalozenia = None
+        zdrowotna += P.SPZOO_JEDNOOSOBOWA_ZDROWOTNA_ROCZNA
+        zus += P.SPZOO_JEDNOOSOBOWA_ZUS_ROCZNY
+        zalozenia_jedno = "Jednoosobowa sp. z o.o.: doliczona zdrowotna i ZUS wspólnika."
 
-    # Składki od etatu dochodzą do łącznych obciążeń.
-    if etat:
-        zdrowotna += etat.zdrowotna
-        zus += etat.zus_pracownik + etat.zus_pracodawca
+    podatek = cit + pit_dyw + pit_skala
 
-    zalozenie_wyplaty = f"Założenie wypłaty {dane.wyplata_dywidendy_pct:.0%} zysku dywidendą."
-    if etat:
-        zalozenie_wyplaty += (f" Pakiet spółka + etat ({dane.poziom_etatu:.0%} "
-                              "płacy minimalnej).")
-    if dane.art_176:
-        zalozenie_wyplaty += (f" Art. 176 KSH: świadczenia wspólnika "
-                              f"{swiadczenia:,.0f} zł (skala, bez ZUS/zdrowotnej).")
-    zalozenia = (zalozenia + " " if zalozenia else "") + zalozenie_wyplaty
-
-    # Netto = dywidenda po PIT + pensja netto + świadczenia po PIT (bez ZUS/zdrow.)
-    #         − dodatkowe obciążenia jednoosobowej.
-    netto = (zysk_po_cit - pit_dyw + (etat.netto if etat else 0.0)
-             + (swiadczenia - pit_176))
+    # Netto do kieszeni (jawnie — poprawne także dla wypłaty < 100%).
+    netto = (swiadczenia + powolanie + pensja + dywidenda
+             - zus_prac - zdrow_etat - zdrow_powolanie - pit_skala - pit_dyw)
     if dane.jednoosobowa_spzoo:
-        netto -= P.SPZOO_JEDNOOSOBOWA_ZDROWOTNA_ROCZNA + P.SPZOO_JEDNOOSOBOWA_ZUS_ROCZNY
+        netto -= (P.SPZOO_JEDNOOSOBOWA_ZDROWOTNA_ROCZNA
+                  + P.SPZOO_JEDNOOSOBOWA_ZUS_ROCZNY)
+
+    czesci = []
+    if swiadczenia > 0:
+        czesci.append(f"art. 176 KSH {swiadczenia:,.0f} zł")
+    if powolanie > 0:
+        czesci.append(f"powołanie zarządu {powolanie:,.0f} zł")
+    if etat:
+        czesci.append(f"etat {pensja:,.0f} zł")
+    if dywidenda > 0:
+        czesci.append(f"dywidenda {dywidenda:,.0f} zł")
+    zalozenia = "Wypłata zoptymalizowana: " + ", ".join(czesci) + "."
+    if zalozenia_jedno:
+        zalozenia = zalozenia_jedno + " " + zalozenia
 
     return WynikFormy(
         "Sp. z o.o.", round(podatek, 2), round(zdrowotna, 2),
         round(zus, 2), round(netto, 2), zalozenia=zalozenia,
         pensja_etat=(etat.pensja_brutto if etat else None),
-        zus_od_etatu=(round(etat.zus_pracownik + etat.zus_pracodawca, 2)
-                      if etat else None),
+        zus_od_etatu=(round(zus_prac + zus_pracodawca, 2) if etat else None),
         zdrowotna_od_etatu=(etat.zdrowotna if etat else None),
         koszt_pensji_w_spolce=(etat.koszt_pracodawcy if etat else None),
         marginalna_stawka_etatu=(etat.marginalna_stawka if etat else None),
         swiadczenia_art176=(round(swiadczenia, 2) if dane.art_176 else None),
+        wyplata_powolanie=(round(powolanie, 2) if powolanie > 0 else None),
+        wyplata_dywidenda=round(dywidenda, 2),
     )
 
 

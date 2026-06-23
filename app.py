@@ -169,15 +169,20 @@ with st.sidebar:
 
     st.subheader("Pozostałe")
     jednoosobowa = st.checkbox("Jednoosobowa sp. z o.o.")
-    art176 = st.checkbox("Ścieżka art. 176 KSH (świadczenia wspólnika)")
+    st.caption("Sp. z o.o. liczona przez zoptymalizowany miks wypłaty "
+               "(art. 176 → powołanie → dywidenda), nie 100% dywidendy.")
+    art176 = st.checkbox("Art. 176 KSH (świadczenia wspólnika)", value=True,
+                         help="Skala PIT, bez ZUS i bez zdrowotnej — najtańszy "
+                              "kanał, domyślnie do I progu (120 000 zł).")
     art176_kwota = None
     if art176:
         _kw = st.number_input(
             "Kwota świadczeń art. 176 — rocznie (0 = auto do I progu)",
-            min_value=0.0, value=0.0, step=10_000.0,
-            help="Świadczenia są kosztem spółki i są opodatkowane skalą, "
-                 "bez ZUS i bez składki zdrowotnej. 0 = automatycznie do 120 000 zł.")
+            min_value=0.0, value=0.0, step=10_000.0)
         art176_kwota = _kw if _kw > 0 else None
+    powolanie_zarzad = st.checkbox(
+        "Wynagrodzenie z powołania zarządu", value=True,
+        help="Skala PIT + 9% zdrowotnej, bez ZUS — wypełnia resztę I progu.")
 
     st.subheader("Ulgi i preferencje")
     liczba_dzieci = st.number_input("Liczba dzieci", min_value=0, value=0, step=1)
@@ -232,6 +237,7 @@ dane = DaneKlienta(
     jednoosobowa_spzoo=jednoosobowa,
     art_176=art176,
     art_176_kwota=art176_kwota,
+    powolanie_zarzad=powolanie_zarzad,
     etat_poza_jdg=etat_poza_jdg,
     etat_poza_jdg_malzonek=etat_malzonek,
     malzonek_do_spolki=malzonek_do_spolki,
