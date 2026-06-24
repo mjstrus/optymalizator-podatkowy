@@ -30,3 +30,16 @@ def test_wiersze_alokacje_mix_oznaczony():
     assert len(wiersze) == 3
     mix = next(r for r in wiersze if "mix" in r["Wariant"].lower())
     assert "⭐" in mix["Wariant"] or "rekom" in mix["Wariant"].lower()
+
+
+def test_wiersze_parametry_zawiera_kluczowe_opcje():
+    from optymalizator.models import DaneKlienta, FormaZUS, Ulgi
+    d = DaneKlienta(przychod=400_000, koszty=50_000, stawka_ryczaltu=0.12,
+                    forma_zus=FormaZUS.DUZY, art_176=True, etat_poza_jdg=True,
+                    ulgi=Ulgi(liczba_dzieci=2, ikze_kwota=5_000))
+    wiersze = UI.wiersze_parametry(d)
+    teksty = {w["Parametr"]: w["Wartość"] for w in wiersze}
+    assert teksty["Roczny przychód"] == "400 000,00 zł"
+    assert teksty["Etat poza działalnością (zbieg)"] == "Tak"
+    assert teksty["Liczba dzieci (ulga)"] == "2"
+    assert "Forma ZUS" in teksty and "Duży" in teksty["Forma ZUS"]

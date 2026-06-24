@@ -373,7 +373,7 @@ if wynik.werdykt.lower().startswith("sp. z o.o"):
 st.subheader("Raport dla klienta")
 try:
     pdf_bytes = generuj_pdf(wynik, narracja, rozbicie=rozbicie,
-                            reinwestycja=reinwestycja, majatek=majatek)
+                            reinwestycja=reinwestycja, majatek=majatek, dane=dane)
     st.download_button("⬇️ Pobierz brandowany PDF", data=pdf_bytes,
                        file_name="optymalizacja_podatkowa_2026.pdf",
                        mime="application/pdf", type="primary")

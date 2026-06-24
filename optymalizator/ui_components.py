@@ -51,6 +51,54 @@ def wiersze_alokacje(reinwestycja) -> list[dict]:
     return wiersze
 
 
+_FORMA_ZUS_PL = {
+    "duzy": "Duży ZUS", "maly_zus_plus": "Mały ZUS Plus",
+    "preferencyjny": "Preferencyjny", "ulga_na_start": "Ulga na start",
+    "etat_zbieg": "Etat (zbieg)",
+}
+
+
+def _tak_nie(v: bool) -> str:
+    return "Tak" if v else "Nie"
+
+
+def wiersze_parametry(dane) -> list[dict]:
+    """Wszystkie wybrane parametry/opcje analizy — do sekcji audytowej raportu."""
+    u = dane.ulgi
+    forma = _FORMA_ZUS_PL.get(getattr(dane.forma_zus, "value", dane.forma_zus),
+                              str(dane.forma_zus))
+    w = [
+        ("Roczny przychód", formatuj_pln(dane.przychod)),
+        ("Roczne koszty", formatuj_pln(dane.koszty)),
+        ("Charakter usług / PKWiU", dane.charakter_uslug or "—"),
+        ("Stawka ryczałtu", f"{(dane.stawka_ryczaltu or 0):.1%}"),
+        ("Forma ZUS", forma),
+        ("Etat poza działalnością (zbieg)", _tak_nie(dane.etat_poza_jdg)),
+        ("Były pracodawca", _tak_nie(dane.byly_pracodawca)),
+        ("Wspólne rozliczenie z małżonkiem", _tak_nie(dane.wspolne_rozliczenie)),
+    ]
+    if dane.wspolne_rozliczenie:
+        w.append(("• Dochód małżonka (po ZUS)", formatuj_pln(dane.dochod_malzonka)))
+    w.append(("Małżonek wnoszony do spółki", _tak_nie(dane.malzonek_do_spolki)))
+    if dane.malzonek_do_spolki:
+        w.append(("• Przychód małżonka", formatuj_pln(dane.malzonek_przychod)))
+        w.append(("• Koszty małżonka", formatuj_pln(dane.malzonek_koszty)))
+    w += [
+        ("Jednoosobowa sp. z o.o.", _tak_nie(dane.jednoosobowa_spzoo)),
+        ("Poziom etatu wspólnika",
+         f"{dane.poziom_etatu:.0%}" if dane.poziom_etatu else "brak"),
+        ("Art. 176 KSH (świadczenia)",
+         ("Tak — " + (formatuj_pln(dane.art_176_kwota) if dane.art_176_kwota
+                      else "auto do I progu")) if dane.art_176 else "Nie"),
+        ("Wynagrodzenie z powołania", _tak_nie(dane.powolanie_zarzad)),
+        ("Liczba dzieci (ulga)", str(u.liczba_dzieci)),
+        ("Ulga 4+ (PIT-0)", _tak_nie(u.ulga_4plus)),
+        ("IP-Box (5%)", _tak_nie(u.ip_box)),
+        ("Wpłata IKZE", formatuj_pln(u.ikze_kwota)),
+    ]
+    return [{"Parametr": p, "Wartość": v} for p, v in w]
+
+
 def wiersze_rozbicie_malzonkowie(wynik: WynikOptymalizacji) -> list[dict]:
     """Rozbicie dochodu netto na małżonka 1 (klient) i 2 — dla form JDG (R15).
     Sp. z o.o. pomijana (dochód wspólny, jeden podmiot)."""

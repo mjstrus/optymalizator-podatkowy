@@ -35,12 +35,23 @@ ZASTRZEZENIE = (
 
 def zbuduj_sekcje(wynik: WynikOptymalizacji,
                   narracja: Narracja | None,
-                  rozbicie=None, reinwestycja=None, majatek=None) -> list[dict]:
+                  rozbicie=None, reinwestycja=None, majatek=None,
+                  dane=None) -> list[dict]:
     """Zwróć uporządkowaną listę sekcji raportu (tytuł + treść)."""
     sekcje: list[dict] = []
 
     sekcje.append({"tytul": "Werdykt matematyczny", "typ": "tekst",
                    "tresc": UI.tekst_werdyktu(wynik)})
+
+    # Parametry analizy — wszystkie wybrane opcje (audytowalność raportu).
+    if dane is not None:
+        sekcje.append({
+            "tytul": "Parametry analizy (wybrane opcje)",
+            "typ": "tabela",
+            "tresc": UI.wiersze_parametry(dane),
+            "kolumny": ["Parametr", "Wartość"],
+            "szer": [110, 74],
+        })
 
     sekcje.append({"tytul": "Tabela porównawcza form",
                    "typ": "tabela",
@@ -183,10 +194,11 @@ class _Raport(FPDF):
 
 def generuj_pdf(wynik: WynikOptymalizacji,
                 narracja: Narracja | None = None,
-                rozbicie=None, reinwestycja=None, majatek=None) -> bytes:
+                rozbicie=None, reinwestycja=None, majatek=None,
+                dane=None) -> bytes:
     """Wygeneruj brandowany PDF jako bytes."""
     sekcje = zbuduj_sekcje(wynik, narracja, rozbicie=rozbicie,
-                           reinwestycja=reinwestycja, majatek=majatek)
+                           reinwestycja=reinwestycja, majatek=majatek, dane=dane)
     pdf = _Raport()
     pdf.set_auto_page_break(auto=True, margin=28)
     pdf.add_page()
