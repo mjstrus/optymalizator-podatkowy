@@ -405,16 +405,31 @@ if wynik.werdykt.lower().startswith("sp. z o.o"):
                 para=malzonek_do_spolki, etat=poziom_etatu > 0,
                 pensja_etat=spzoo.pensja_etat)
 
-            st.subheader("Reinwestycja oszczędności")
-            st.write(f"Podział: **{UI.formatuj_pln(reinwestycja.czesc_pracujaca)}** "
-                     f"pracujące w III filarze, "
-                     f"**{UI.formatuj_pln(reinwestycja.czesc_gotowka)}** w gotówce.")
-            st.dataframe(UI.wiersze_alokacje(reinwestycja),
-                         width="stretch", hide_index=True)
+            st.subheader("Co odkładamy do III filaru (IKE / IKZE)")
+            st.write(f"Z oszczędności **{UI.formatuj_pln(rozbicie.netto)}** rocznie: "
+                     f"**{UI.formatuj_pln(reinwestycja.czesc_pracujaca)}** pracuje "
+                     f"w III filarze, **{UI.formatuj_pln(reinwestycja.czesc_gotowka)}** "
+                     f"zostaje w gotówce.")
+            mix = reinwestycja.rekomendacja
+            _m = st.columns(3)
+            _m[0].metric("➜ IKE (rocznie)", UI.formatuj_pln(mix.ike))
+            _m[1].metric("➜ IKZE (rocznie)", UI.formatuj_pln(mix.ikze))
+            _m[2].metric("Nadwyżka → gotówka",
+                         UI.formatuj_pln(mix.gotowka_dodatkowa))
+            st.caption("Rekomendacja: mix wg progu podatkowego. IKZE daje "
+                       "odliczenie od dochodu już dziś; IKE — wypłata bez podatku "
+                       "Belki na emeryturze. Limity 2026: IKE 28 260 zł, "
+                       "IKZE 11 304 zł (etat) / 16 956 zł (działalność).")
+
+            st.markdown("**Ile urośnie część odłożona (widełki):**")
             for p in reinwestycja.projekcje:
                 st.markdown(f"- **{p.stopa:.0%}** przez {p.horyzont} lat → "
-                            f"{UI.formatuj_pln(p.wartosc_koncowa)} "
+                            f"**{UI.formatuj_pln(p.wartosc_koncowa)}** "
                             f"(zysk {UI.formatuj_pln(p.zysk)})")
+
+            with st.expander("Porównanie wariantów: IKE-only / IKZE-only / mix"):
+                st.dataframe(UI.wiersze_alokacje(reinwestycja),
+                             width="stretch", hide_index=True)
             if reinwestycja.ppk:
                 st.caption(f"PPK (etat): pracownik "
                            f"{UI.formatuj_pln(reinwestycja.ppk['wplata_pracownik'])}, "

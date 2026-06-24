@@ -175,13 +175,18 @@ def zbuduj_sekcje(wynik: WynikOptymalizacji,
 
     # Reinwestycja (Unit 8) — rekomendacja + kompaktowe porównanie + projekcja.
     if reinwestycja is not None:
+        mix = reinwestycja.rekomendacja
+        nadw = (f", nadwyżka {UI.formatuj_pln(mix.gotowka_dodatkowa)} do gotówki"
+                if mix.gotowka_dodatkowa > 0 else "")
         sekcje.append({
-            "tytul": "Reinwestycja oszczędności",
+            "tytul": "Co odkładamy do III filaru (IKE / IKZE)",
             "typ": "tekst",
-            "tresc": (f"Podział oszczędności: "
-                      f"{UI.formatuj_pln(reinwestycja.czesc_pracujaca)} "
-                      f"pracujące w III filarze, "
-                      f"{UI.formatuj_pln(reinwestycja.czesc_gotowka)} w gotówce."),
+            "tresc": (f"Z {UI.formatuj_pln(reinwestycja.czesc_pracujaca)} "
+                      f"pracujących w III filarze rekomendujemy (mix wg progu): "
+                      f"IKE {UI.formatuj_pln(mix.ike)} + "
+                      f"IKZE {UI.formatuj_pln(mix.ikze)}{nadw}. "
+                      f"W gotówce pozostaje "
+                      f"{UI.formatuj_pln(reinwestycja.czesc_gotowka)}."),
         })
         sekcje.append({
             "tytul": "Porównanie alokacji III filaru",

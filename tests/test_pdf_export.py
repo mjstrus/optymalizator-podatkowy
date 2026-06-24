@@ -66,6 +66,6 @@ def test_sekcje_z_waterfall_i_reinwestycja():
     sekcje = PDF.zbuduj_sekcje(w, None, rozbicie=rozb, reinwestycja=rein)
     tytuly = " ".join(s["tytul"] for s in sekcje).lower()
     assert "oszczędno" in tytuly       # waterfall
-    assert "reinwest" in tytuly
+    assert "iii filaru" in tytuly      # sekcja IKE/IKZE
     dane = PDF.generuj_pdf(w, None, rozbicie=rozb, reinwestycja=rein)
     assert dane[:5] == b"%PDF-"
