@@ -145,6 +145,8 @@ with st.sidebar:
             "Małżonek ma etat poza działalnością (≥ min.)",
             help="Zbieg tytułów — małżonek nie płaci ZUS społecznego z działalności.")
 
+    malzonek_forma_zus = FormaZUS.DUZY
+    malzonek_dochod_poprzedni = 0.0
     if malzonek_do_spolki:
         malzonek_przychod = st.number_input(
             "Przychód małżonka — rocznie (zł)", min_value=0.0, step=10_000.0,
@@ -152,6 +154,20 @@ with st.sidebar:
         malzonek_koszty = st.number_input(
             "Koszty małżonka — rocznie (zł)", min_value=0.0, step=5_000.0,
             key="_malzonek_koszty")
+        malzonek_forma_zus = st.selectbox(
+            "Forma ZUS małżonka (na własnej JDG)",
+            options=list(FormaZUS),
+            format_func=lambda f: {
+                FormaZUS.DUZY: "Duży ZUS", FormaZUS.MALY_ZUS_PLUS: "Mały ZUS Plus",
+                FormaZUS.PREFERENCYJNY: "Preferencyjny",
+                FormaZUS.ULGA_NA_START: "Ulga na start",
+                FormaZUS.ETAT_ZBIEG: "Etat (zbieg)"}[f],
+            help="ZUS, na którym małżonek jest DZIŚ — wpływa na porównanie "
+                 "z wariantem wniesienia do spółki.")
+        if malzonek_forma_zus == FormaZUS.MALY_ZUS_PLUS:
+            malzonek_dochod_poprzedni = st.number_input(
+                "Dochód małżonka z poprzedniego roku (zł)", min_value=0.0,
+                value=80_000.0, step=10_000.0)
 
     if wspolne:
         dochod_malzonka = st.number_input(
@@ -253,6 +269,8 @@ dane = DaneKlienta(
     malzonek_do_spolki=malzonek_do_spolki,
     malzonek_przychod=malzonek_przychod,
     malzonek_koszty=malzonek_koszty,
+    malzonek_forma_zus=malzonek_forma_zus,
+    malzonek_dochod_poprzedni_rok=malzonek_dochod_poprzedni,
     poziom_etatu=poziom_etatu,
     ulgi=Ulgi(liczba_dzieci=int(liczba_dzieci), ulga_4plus=ulga_4plus,
               ip_box=ip_box, ikze_kwota=ikze),

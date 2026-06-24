@@ -63,6 +63,8 @@ class DaneKlienta:
     malzonek_do_spolki: bool = False
     malzonek_przychod: float = 0.0
     malzonek_koszty: float = 0.0
+    malzonek_forma_zus: FormaZUS = FormaZUS.DUZY     # ZUS małżonka na własnej JDG
+    malzonek_dochod_poprzedni_rok: float = 0.0       # dla Małego ZUS Plus małżonka
     # Sp. z o.o. jako pakiet „spółka + etat" (R6 rozszerzone). Ułamek płacy
     # minimalnej jako pensja wspólnika; 0.0 = czysta dywidenda (bez etatu).
     poziom_etatu: float = 0.0

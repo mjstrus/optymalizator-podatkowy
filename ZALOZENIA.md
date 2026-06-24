@@ -55,13 +55,15 @@ deterministyczne i przetestowane (82 testy), ale poprawność *reguł* podatkowy
 - **Jednoosobowa sp. z o.o.** — doliczona zdrowotna + ZUS wspólnika.
 - **Struktura 2-osobowa** (np. 99/1) bywa kwestionowana przez ZUS — pokazywane
   jako ryzyko, nie ukrywane.
-- **Małżonek wnoszony do spółki (R15)** — porównanie na poziomie pary: zysk z
-  działalności małżonka wchodzi do spółki (wyższy CIT/dywidenda), a formy JDG
-  uzupełniane są o **samodzielny najlepszy wynik małżonka** (klient na danej
-  formie + małżonek na własnej JDG), by zestawienie „oboje w spółce" vs „osobno"
-  było rzetelne. Wymaga wgranego KPiR małżonka. *Uproszczenie: małżonek na JDG
-  liczony Dużym ZUS (lub 0 przy zbiegu); pełne sub-warianty etatu/art.176 dla
-  małżonka — do rozważenia.*
+- **Małżonek wnoszony do spółki (R15)** — porównanie na poziomie pary:
+  - **Formy JDG** = klient na danej formie + małżonek na własnej najlepszej JDG
+    (dwie OSOBNE działalności, sumowane po opodatkowaniu). Kolumny tabeli
+    (podatek/zdrowotna/ZUS) też są couple-level. ZUS małżonka liczony wg jego
+    **wskazanej formy ZUS** (Duży / Mały ZUS Plus / itd.) — co pokazuje, że jego
+    składki z JDG **znikają** po wniesieniu do spółki.
+  - **Sp. z o.o.** = jeden podmiot z dwoma wspólnikami: każdy ma **własny art. 176
+    (do I progu)**, **własny etat** i **własną progresję skali** (pełne 2-osobowe
+    optimum). Wymaga wgranego KPiR / danych małżonka.
 - **Art. 176 KSH** — modelowany liczbowo: świadczenia wspólnika to koszt spółki
   (obniżają CIT i dywidendę), u wspólnika opodatkowane skalą, **bez ZUS i bez
   zdrowotnej**. Kwota: auto do I progu skali (120 000 zł) lub podana przez

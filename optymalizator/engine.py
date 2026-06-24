@@ -173,95 +173,109 @@ def _oblicz_etat(pensja_brutto: float) -> WynikEtat:
     )
 
 
-def _oblicz_spzoo(dane: DaneKlienta, dodatkowy_zysk: float = 0.0) -> WynikFormy:
-    """Sp. z o.o. liczona przez ZOPTYMALIZOWANY miks wypłaty (nie 100% dywidendy).
-
-    Kolejność ekstrakcji wypełnia I próg skali (12%) najtańszymi kanałami, bo
-    powyżej progu dywidenda (26,3%) bije skalę 32%:
-      1) art. 176 KSH — świadczenia wspólnika: skala PIT, BEZ ZUS i zdrowotnej,
-      2) wynagrodzenie z powołania zarządu: skala PIT + 9% zdrowotnej, bez ZUS,
-      3) reszta → dywidenda (CIT 9% + 19%).
-    Opcjonalnie pakiet „spółka + etat" (realna pensja z ZUS) oraz wciągnięcie
-    zysku małżonka (R15) przez `dodatkowy_zysk`.
-    """
-    # 1) Opcjonalny etat (realna pensja: ZUS + zdrowotna + podstawa skali)
+def _ekstrakcja_osoby(zysk_dost: float, *, poziom_etatu: float, art_176: bool,
+                      art_176_kwota: float | None, powolanie_zarzad: bool) -> dict:
+    """Zoptymalizowana wypłata dla JEDNEGO wspólnika z dostępnego zysku.
+    Wypełnia jego I próg skali (12%) najtańszymi kanałami: etat → art.176 →
+    powołanie. Każdy wspólnik ma WŁASNĄ progresję skali."""
     etat = None
     koszt_etatu = etat_podstawa = zus_prac = zus_pracodawca = zdrow_etat = pensja = 0.0
-    if dane.poziom_etatu > 0:
-        pensja = dane.poziom_etatu * P.MINIMALNE_WYNAGRODZENIE * 12
+    if poziom_etatu > 0:
+        pensja = poziom_etatu * P.MINIMALNE_WYNAGRODZENIE * 12
         etat = _oblicz_etat(pensja)
         koszt_etatu = etat.koszt_pracodawcy
         etat_podstawa = etat.podstawa_pit
         zus_prac, zus_pracodawca, zdrow_etat = (
             etat.zus_pracownik, etat.zus_pracodawca, etat.zdrowotna)
 
-    zysk = dane.przychod - dane.koszty + dodatkowy_zysk - koszt_etatu
-
-    # Miejsce w I progu skali pozostałe po pensji etatowej.
+    dost = max(0.0, zysk_dost - koszt_etatu)
     room_12 = max(0.0, P.SKALA_PROG - etat_podstawa)
 
-    # 2) Art. 176 KSH — najtańszy kanał, domyślnie wypełnia I próg.
     swiadczenia = 0.0
-    if dane.art_176:
-        art_kwota = (dane.art_176_kwota if dane.art_176_kwota is not None
-                     else room_12)
-        swiadczenia = max(0.0, min(art_kwota, room_12, zysk))
-        zysk -= swiadczenia
-
-    # 3) Powołanie zarządu — wypełnia resztę I progu (skala + 9% zdrowotnej).
+    if art_176:
+        art_k = art_176_kwota if art_176_kwota is not None else room_12
+        swiadczenia = max(0.0, min(art_k, room_12, dost))
+        dost -= swiadczenia
     powolanie = 0.0
-    if dane.powolanie_zarzad:
-        powolanie = max(0.0, min(room_12 - swiadczenia, zysk))
-        zysk -= powolanie
+    if powolanie_zarzad:
+        powolanie = max(0.0, min(room_12 - swiadczenia, dost))
+        dost -= powolanie
 
-    # 4) Reszta → dywidenda.
+    return {
+        "koszt_spolki": koszt_etatu + swiadczenia + powolanie,
+        "scale_income": etat_podstawa + swiadczenia + powolanie,
+        "zdrowotna": zdrow_etat + P.ZDROWOTNA_ETAT_STAWKA * powolanie,
+        "zus": zus_prac + zus_pracodawca,
+        "swiadczenia": swiadczenia, "powolanie": powolanie, "pensja": pensja,
+        "etat": etat,
+    }
+
+
+def _oblicz_spzoo(dane: DaneKlienta, dodatkowy_zysk: float = 0.0) -> WynikFormy:
+    """Sp. z o.o. liczona przez ZOPTYMALIZOWANY miks wypłaty (nie 100% dywidendy):
+    art. 176 KSH (bez ZUS/zdrow.) → powołanie zarządu (skala+9% zdrow.) →
+    dywidenda jako reszta. Przy R15 (`dodatkowy_zysk` z działalności małżonka)
+    spółka ma DWÓCH wspólników — każdy z własnym art. 176, etatem i progresją."""
+    zysk0 = dane.przychod - dane.koszty + dodatkowy_zysk
+    dwoje = dodatkowy_zysk != 0 and dane.malzonek_do_spolki
+
+    osoby = [_ekstrakcja_osoby(
+        zysk0, poziom_etatu=dane.poziom_etatu, art_176=dane.art_176,
+        art_176_kwota=dane.art_176_kwota, powolanie_zarzad=dane.powolanie_zarzad)]
+    zysk = zysk0 - osoby[0]["koszt_spolki"]
+    if dwoje:
+        o2 = _ekstrakcja_osoby(
+            zysk, poziom_etatu=dane.poziom_etatu, art_176=dane.art_176,
+            art_176_kwota=dane.art_176_kwota, powolanie_zarzad=dane.powolanie_zarzad)
+        osoby.append(o2)
+        zysk -= o2["koszt_spolki"]
+
     cit = max(0.0, P.CIT_STAWKA * zysk)
     zysk_po_cit = zysk - cit
-    dywidenda = max(0.0, zysk_po_cit) * dane.wyplata_dywidendy_pct
+    dywidenda = max(0.0, zysk_po_cit)               # pełna wypłata reszty
     pit_dyw = P.DYWIDENDA_STAWKA * dywidenda
 
-    # PIT skali liczony ŁĄCZNIE od dochodu wspólnika ze skali (progresja).
-    pit_skala = _podatek_skala_osoba(etat_podstawa + swiadczenia + powolanie)
-    zdrow_powolanie = P.ZDROWOTNA_ETAT_STAWKA * powolanie
+    # Każdy wspólnik rozlicza skalę osobno (własna progresja).
+    pit_skala = sum(_podatek_skala_osoba(o["scale_income"]) for o in osoby)
+    zdrowotna = sum(o["zdrowotna"] for o in osoby)
+    zus = sum(o["zus"] for o in osoby)
+    swiadczenia = sum(o["swiadczenia"] for o in osoby)
+    powolanie = sum(o["powolanie"] for o in osoby)
 
-    zdrowotna = zdrow_etat + zdrow_powolanie
-    zus = zus_prac + zus_pracodawca
     zalozenia_jedno = None
-    if dane.jednoosobowa_spzoo:
+    if dane.jednoosobowa_spzoo and not dwoje:
         zdrowotna += P.SPZOO_JEDNOOSOBOWA_ZDROWOTNA_ROCZNA
         zus += P.SPZOO_JEDNOOSOBOWA_ZUS_ROCZNY
         zalozenia_jedno = "Jednoosobowa sp. z o.o.: doliczona zdrowotna i ZUS wspólnika."
 
     podatek = cit + pit_dyw + pit_skala
-
-    # Netto do kieszeni (jawnie — poprawne także dla wypłaty < 100%).
-    netto = (swiadczenia + powolanie + pensja + dywidenda
-             - zus_prac - zdrow_etat - zdrow_powolanie - pit_skala - pit_dyw)
-    if dane.jednoosobowa_spzoo:
-        netto -= (P.SPZOO_JEDNOOSOBOWA_ZDROWOTNA_ROCZNA
-                  + P.SPZOO_JEDNOOSOBOWA_ZUS_ROCZNY)
+    netto = zysk0 - zus - zdrowotna - podatek       # tożsamość (pełna wypłata)
 
     czesci = []
     if swiadczenia > 0:
         czesci.append(f"art. 176 KSH {swiadczenia:,.0f} zł")
     if powolanie > 0:
         czesci.append(f"powołanie zarządu {powolanie:,.0f} zł")
-    if etat:
-        czesci.append(f"etat {pensja:,.0f} zł")
+    pensje = sum(o["pensja"] for o in osoby)
+    if pensje > 0:
+        czesci.append(f"etat {pensje:,.0f} zł")
     if dywidenda > 0:
         czesci.append(f"dywidenda {dywidenda:,.0f} zł")
-    zalozenia = "Wypłata zoptymalizowana: " + ", ".join(czesci) + "."
+    zalozenia = ("Wypłata zoptymalizowana"
+                 + (" (2 wspólników)" if dwoje else "") + ": "
+                 + ", ".join(czesci) + ".")
     if zalozenia_jedno:
         zalozenia = zalozenia_jedno + " " + zalozenia
 
+    etat1 = osoby[0]["etat"]
     return WynikFormy(
         "Sp. z o.o.", round(podatek, 2), round(zdrowotna, 2),
         round(zus, 2), round(netto, 2), zalozenia=zalozenia,
-        pensja_etat=(etat.pensja_brutto if etat else None),
-        zus_od_etatu=(round(zus_prac + zus_pracodawca, 2) if etat else None),
-        zdrowotna_od_etatu=(etat.zdrowotna if etat else None),
-        koszt_pensji_w_spolce=(etat.koszt_pracodawcy if etat else None),
-        marginalna_stawka_etatu=(etat.marginalna_stawka if etat else None),
+        pensja_etat=(round(pensje, 2) if pensje > 0 else None),
+        zus_od_etatu=(round(zus, 2) if pensje > 0 else None),
+        zdrowotna_od_etatu=(round(zdrowotna, 2) if pensje > 0 else None),
+        koszt_pensji_w_spolce=(etat1.koszt_pracodawcy if etat1 else None),
+        marginalna_stawka_etatu=(etat1.marginalna_stawka if etat1 else None),
         swiadczenia_art176=(round(swiadczenia, 2) if dane.art_176 else None),
         wyplata_powolanie=(round(powolanie, 2) if powolanie > 0 else None),
         wyplata_dywidenda=round(dywidenda, 2),
@@ -285,20 +299,21 @@ def _ulga_dzieci(dane: DaneKlienta, podatek: float, zus: float,
     return min(naliczona, max(0.0, podatek) + zus + zdrowotna)
 
 
-def _najlepsza_jdg_malzonka(dane: DaneKlienta) -> float:
-    """Samodzielny najlepszy dochód netto małżonka na JDG (skala/liniowy/
-    ryczałt) — bez sp. z o.o., bez R15 (uniknięcie rekurencji)."""
+def _najlepsza_jdg_malzonka(dane: DaneKlienta) -> WynikFormy | None:
+    """Samodzielny najlepszy wynik małżonka na JDG (skala/liniowy/ryczałt) —
+    bez sp. z o.o., bez R15. Uwzględnia ZUS małżonka wg jego formy."""
     malzonek = DaneKlienta(
         przychod=dane.malzonek_przychod,
         koszty=dane.malzonek_koszty,
         stawka_ryczaltu=dane.stawka_ryczaltu,
-        forma_zus=dane.forma_zus,
+        forma_zus=dane.malzonek_forma_zus,
+        dochod_poprzedni_rok=dane.malzonek_dochod_poprzedni_rok,
         etat_poza_jdg=dane.etat_poza_jdg_malzonek,
     )
     w = run_optimization(malzonek)
     jdg = [f for f in w.formy if f.nazwa != "Sp. z o.o."
            and f.dostepnosc == Dostepnosc.DOSTEPNA]
-    return max((f.dochod_netto for f in jdg), default=0.0)
+    return max(jdg, key=lambda f: f.dochod_netto, default=None)
 
 
 # --- Punkt wejścia ----------------------------------------------------------
@@ -310,10 +325,10 @@ def run_optimization(dane: DaneKlienta) -> WynikOptymalizacji:
     # JDG (klient na danej formie) + samodzielny najlepszy wynik małżonka;
     # sp. z o.o. wciąga zysk z działalności małżonka.
     dodatkowy_zysk = 0.0
-    netto_malzonka_jdg = 0.0
+    malzonek_jdg = None
     if dane.malzonek_do_spolki:
         dodatkowy_zysk = dane.malzonek_przychod - dane.malzonek_koszty
-        netto_malzonka_jdg = _najlepsza_jdg_malzonka(dane)
+        malzonek_jdg = _najlepsza_jdg_malzonka(dane)
 
     formy = [
         _oblicz_skala(dane, zus),
@@ -321,14 +336,17 @@ def run_optimization(dane: DaneKlienta) -> WynikOptymalizacji:
         _oblicz_ryczalt(dane, zus),
         _oblicz_spzoo(dane, dodatkowy_zysk=dodatkowy_zysk),
     ]
-    if dane.malzonek_do_spolki:
-        # Formy JDG klienta uzupełniamy o samodzielny dochód małżonka (para),
-        # aby porównanie z „oboje w spółce" było rzetelne.
+    if dane.malzonek_do_spolki and malzonek_jdg is not None:
+        # Formy JDG na poziomie PARY: klient + samodzielny najlepszy wynik
+        # małżonka. Kolumny (podatek/zdrowotna/ZUS) też sumują oboje (B).
         for f in formy:
             if f.nazwa != "Sp. z o.o.":
                 f.dochod_netto_klient = f.dochod_netto
-                f.dochod_netto_malzonek = round(netto_malzonka_jdg, 2)
-                f.dochod_netto = round(f.dochod_netto + netto_malzonka_jdg, 2)
+                f.dochod_netto_malzonek = malzonek_jdg.dochod_netto
+                f.dochod_netto = round(f.dochod_netto + malzonek_jdg.dochod_netto, 2)
+                f.podatek = round(f.podatek + malzonek_jdg.podatek, 2)
+                f.zdrowotna = round(f.zdrowotna + malzonek_jdg.zdrowotna, 2)
+                f.zus_spoleczny = round(f.zus_spoleczny + malzonek_jdg.zus_spoleczny, 2)
 
     # Screening: oznacz niedostępne formy.
     screening = _screening(dane)
