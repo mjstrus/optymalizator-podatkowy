@@ -62,6 +62,19 @@ def _tak_nie(v: bool) -> str:
     return "Tak" if v else "Nie"
 
 
+def nota_majatek_spzoo(wynik: WynikOptymalizacji) -> str | None:
+    """Jeśli część zysku sp. z o.o. zostaje w spółce — wyjaśnij skład „dochodu
+    netto" (kieszeń + zatrzymane), żeby było to widoczne, nie schowane."""
+    spzoo = next((f for f in wynik.formy if "z o.o" in f.nazwa.lower()), None)
+    if not spzoo or not spzoo.zysk_zatrzymany:
+        return None
+    kieszen = spzoo.dochod_netto - spzoo.zysk_zatrzymany
+    return (f"Dochód netto sp. z o.o. ({formatuj_pln(spzoo.dochod_netto)}) to "
+            f"majątek łączny: {formatuj_pln(kieszen)} w kieszeni + "
+            f"{formatuj_pln(spzoo.zysk_zatrzymany)} pozostawione w spółce "
+            f"(kapitał/gotówka spółki; przyszła wypłata = 19% PIT).")
+
+
 def wiersze_parametry(dane) -> list[dict]:
     """Wszystkie wybrane parametry/opcje analizy — do sekcji audytowej raportu."""
     u = dane.ulgi

@@ -309,6 +309,9 @@ if wspolne and wynik.werdykt in ("Liniowy", "Ryczałt"):
 st.subheader("Tabela porównawcza")
 st.dataframe(UI.tabela_porownawcza(wynik), width="stretch",
              hide_index=True)
+_nota = UI.nota_majatek_spzoo(wynik)
+if _nota:
+    st.info(_nota)
 
 # Założenia sp. z o.o. (jawne — R6)
 for f in wynik.formy:

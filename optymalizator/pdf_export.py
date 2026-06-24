@@ -128,6 +128,11 @@ def zbuduj_sekcje(wynik: WynikOptymalizacji,
                    "typ": "tabela",
                    "tresc": _wiersze_tabeli(wynik)})
 
+    nota = UI.nota_majatek_spzoo(wynik)
+    if nota:
+        sekcje.append({"tytul": "Skład dochodu netto sp. z o.o.",
+                       "typ": "tekst", "tresc": nota})
+
     # Skumulowany majątek po 1/5/10 latach.
     if majatek:
         wiersze_m = UI.wiersze_majatek(majatek)
