@@ -128,7 +128,8 @@ class WynikFormy:
     # Miks wypłaty ze sp. z o.o. (kanały ekstrakcji)
     wyplata_powolanie: float | None = None    # wynagrodzenie z powołania zarządu
     wyplata_najem: float | None = None        # czynsz najmu majątku do spółki
-    wyplata_dywidenda: float | None = None    # dywidenda (reszta)
+    wyplata_dywidenda: float | None = None    # dywidenda (wypłacona część reszty)
+    zysk_zatrzymany: float | None = None      # zysk zostawiony w spółce (tylko CIT)
     # Rozbicie pary przy R15 (tylko formy JDG; sp. z o.o. = dochód wspólny).
     dochod_netto_klient: float | None = None
     dochod_netto_malzonek: float | None = None

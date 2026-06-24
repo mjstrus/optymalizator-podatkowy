@@ -206,6 +206,12 @@ with st.sidebar:
         help="Czynsz to koszt spółki; u właściciela ryczałt 8,5% do 100 tys., "
              "12,5% powyżej — bez ZUS i zdrowotnej. Wpisz realny czynsz rynkowy "
              "posiadanego majątku (nieruchomość, sprzęt itp.).")
+    wyplata_pct = st.slider(
+        "Wypłata zysku dywidendą (%)", min_value=0, max_value=100, value=100,
+        step=5,
+        help="Reszta zostaje w spółce (tylko CIT 9%, bez 19% dywidendy) — niższy "
+             "podatek kosztem płynności. „Dochód netto” liczy majątek łączny "
+             "(kieszeń + zatrzymane w spółce).")
 
     st.subheader("Ulgi i preferencje")
     liczba_dzieci = st.number_input("Liczba dzieci", min_value=0, value=0, step=1)
@@ -271,6 +277,7 @@ dane = DaneKlienta(
     art_176_kwota=art176_kwota,
     powolanie_zarzad=powolanie_zarzad,
     najem_do_spolki=najem_do_spolki,
+    wyplata_dywidendy_pct=wyplata_pct / 100,
     etat_poza_jdg=etat_poza_jdg,
     etat_poza_jdg_malzonek=etat_malzonek,
     malzonek_do_spolki=malzonek_do_spolki,

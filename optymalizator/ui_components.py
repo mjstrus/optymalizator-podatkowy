@@ -92,6 +92,7 @@ def wiersze_parametry(dane) -> list[dict]:
                       else "auto do I progu")) if dane.art_176 else "Nie"),
         ("Wynagrodzenie z powołania", _tak_nie(dane.powolanie_zarzad)),
         ("Najem majątku do spółki (czynsz)", formatuj_pln(dane.najem_do_spolki)),
+        ("Wypłata zysku dywidendą", f"{dane.wyplata_dywidendy_pct:.0%}"),
         ("Liczba dzieci (ulga)", str(u.liczba_dzieci)),
         ("Ulga 4+ (PIT-0)", _tak_nie(u.ulga_4plus)),
         ("IP-Box (5%)", _tak_nie(u.ip_box)),

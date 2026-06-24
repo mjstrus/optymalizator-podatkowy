@@ -243,8 +243,11 @@ def _oblicz_spzoo(dane: DaneKlienta, dodatkowy_zysk: float = 0.0) -> WynikFormy:
     zysk -= najem
 
     cit = max(0.0, P.CIT_STAWKA * zysk)
-    zysk_po_cit = zysk - cit
-    dywidenda = max(0.0, zysk_po_cit)               # pełna wypłata reszty
+    zysk_po_cit = max(0.0, zysk - cit)
+    # Część reszty wypłacana dywidendą (19%); pozostała ZOSTAJE w spółce (tylko
+    # CIT) — niższy podatek kosztem płynności. „Dochód netto" = majątek łączny.
+    dywidenda = zysk_po_cit * dane.wyplata_dywidendy_pct
+    zysk_zatrzymany = zysk_po_cit - dywidenda
     pit_dyw = P.DYWIDENDA_STAWKA * dywidenda
 
     # Każdy wspólnik rozlicza skalę osobno (własna progresja).
@@ -275,6 +278,8 @@ def _oblicz_spzoo(dane: DaneKlienta, dodatkowy_zysk: float = 0.0) -> WynikFormy:
         czesci.append(f"etat {pensje:,.0f} zł")
     if dywidenda > 0:
         czesci.append(f"dywidenda {dywidenda:,.0f} zł")
+    if zysk_zatrzymany > 0:
+        czesci.append(f"zatrzymane w spółce {zysk_zatrzymany:,.0f} zł")
     zalozenia = ("Wypłata zoptymalizowana"
                  + (" (2 wspólników)" if dwoje else "") + ": "
                  + ", ".join(czesci) + ".")
@@ -294,6 +299,7 @@ def _oblicz_spzoo(dane: DaneKlienta, dodatkowy_zysk: float = 0.0) -> WynikFormy:
         wyplata_powolanie=(round(powolanie, 2) if powolanie > 0 else None),
         wyplata_najem=(round(najem, 2) if najem > 0 else None),
         wyplata_dywidenda=round(dywidenda, 2),
+        zysk_zatrzymany=(round(zysk_zatrzymany, 2) if zysk_zatrzymany > 0 else None),
     )
 
 
