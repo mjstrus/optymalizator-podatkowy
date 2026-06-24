@@ -200,6 +200,12 @@ with st.sidebar:
     powolanie_zarzad = st.checkbox(
         "Wynagrodzenie z powołania zarządu", value=True,
         help="Skala PIT + 9% zdrowotnej, bez ZUS — wypełnia resztę I progu.")
+    najem_do_spolki = st.number_input(
+        "Najem majątku prywatnego do spółki — roczny czynsz (zł)",
+        min_value=0.0, value=0.0, step=10_000.0,
+        help="Czynsz to koszt spółki; u właściciela ryczałt 8,5% do 100 tys., "
+             "12,5% powyżej — bez ZUS i zdrowotnej. Wpisz realny czynsz rynkowy "
+             "posiadanego majątku (nieruchomość, sprzęt itp.).")
 
     st.subheader("Ulgi i preferencje")
     liczba_dzieci = st.number_input("Liczba dzieci", min_value=0, value=0, step=1)
@@ -264,6 +270,7 @@ dane = DaneKlienta(
     art_176=art176,
     art_176_kwota=art176_kwota,
     powolanie_zarzad=powolanie_zarzad,
+    najem_do_spolki=najem_do_spolki,
     etat_poza_jdg=etat_poza_jdg,
     etat_poza_jdg_malzonek=etat_malzonek,
     malzonek_do_spolki=malzonek_do_spolki,

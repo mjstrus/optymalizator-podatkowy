@@ -43,11 +43,16 @@ deterministyczne i przetestowane (82 testy), ale poprawność *reguł* podatkowy
 
 - **Wypłata zoptymalizowana (nie 100% dywidendy).** Silnik wypełnia I próg skali
   (12%) najtańszymi kanałami, bo powyżej progu dywidenda (26,3%) bije skalę 32%:
-  1) **art. 176 KSH** — świadczenia wspólnika: skala PIT, bez ZUS i zdrowotnej
-  (domyślnie do 120 000 zł); 2) **wynagrodzenie z powołania zarządu** — skala PIT
-  + 9% zdrowotnej, bez ZUS (wypełnia resztę I progu); 3) **dywidenda** — reszta
-  (CIT 9% + 19%). *Warunki: świadczenia art. 176 muszą być realne, zapisane w
-  umowie spółki i wycenione rynkowo; powołanie wymaga uchwały — do potwierdzenia.*
+  1) **najem prywatnego majątku do spółki** — czynsz to koszt spółki, u
+  właściciela ryczałt od najmu: 8,5% do 100 000 zł, 12,5% powyżej, bez ZUS i
+  zdrowotnej (najtańszy kanał na pierwszych 100 tys.); 2) **art. 176 KSH** —
+  świadczenia wspólnika: skala PIT, bez ZUS i zdrowotnej (domyślnie do 120 000 zł);
+  3) **wynagrodzenie z powołania zarządu** — skala PIT + 9% zdrowotnej, bez ZUS
+  (wypełnia resztę I progu); 4) **dywidenda** — reszta (CIT 9% + 19%).
+  *Warunki: czynsz najmu musi odpowiadać realnemu majątkowi i stawce rynkowej;
+  świadczenia art. 176 — realne, w umowie spółki, wycenione rynkowo; powołanie —
+  uchwała. Wszystko do potwierdzenia przez doradcę. Próg najmu 100 tys. liczony
+  per właściciel (przy parze do rozbicia osobno).*
 - **Etat wspólnika** (poziom 1/4…pełny) jako ułamek **płacy minimalnej**:
   pensja jest kosztem spółki (obniża CIT i dywidendę) i dochodem skali u
   pracownika. Składki ZUS pracownika/pracodawcy wg stawek ustawowych

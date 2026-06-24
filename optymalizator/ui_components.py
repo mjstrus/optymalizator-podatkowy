@@ -91,6 +91,7 @@ def wiersze_parametry(dane) -> list[dict]:
          ("Tak — " + (formatuj_pln(dane.art_176_kwota) if dane.art_176_kwota
                       else "auto do I progu")) if dane.art_176 else "Nie"),
         ("Wynagrodzenie z powołania", _tak_nie(dane.powolanie_zarzad)),
+        ("Najem majątku do spółki (czynsz)", formatuj_pln(dane.najem_do_spolki)),
         ("Liczba dzieci (ulga)", str(u.liczba_dzieci)),
         ("Ulga 4+ (PIT-0)", _tak_nie(u.ulga_4plus)),
         ("IP-Box (5%)", _tak_nie(u.ip_box)),

@@ -54,6 +54,7 @@ class DaneKlienta:
     art_176: bool = True                   # świadczenia art. 176 KSH (domyślnie tak)
     art_176_kwota: float | None = None     # roczna kwota świadczeń; None = auto do I progu
     powolanie_zarzad: bool = True          # wynagrodzenie z powołania (wypełnia I próg)
+    najem_do_spolki: float = 0.0           # roczny czynsz najmu majątku do spółki
     wyplata_dywidendy_pct: float = 1.0     # założenie wypłaty zysku (R6)
     # Zbieg tytułów: etat poza JDG (pensja ≥ minimalnej) → brak ZUS społecznego.
     etat_poza_jdg: bool = False
@@ -126,6 +127,7 @@ class WynikFormy:
     swiadczenia_art176: float | None = None   # kwota świadczeń art. 176 KSH
     # Miks wypłaty ze sp. z o.o. (kanały ekstrakcji)
     wyplata_powolanie: float | None = None    # wynagrodzenie z powołania zarządu
+    wyplata_najem: float | None = None        # czynsz najmu majątku do spółki
     wyplata_dywidenda: float | None = None    # dywidenda (reszta)
     # Rozbicie pary przy R15 (tylko formy JDG; sp. z o.o. = dochód wspólny).
     dochod_netto_klient: float | None = None

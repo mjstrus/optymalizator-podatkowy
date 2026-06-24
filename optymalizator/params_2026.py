@@ -105,6 +105,13 @@ ZUS_PRACODAWCA_STAWKA = (ZUS_EMERYTALNA + ZUS_RENTOWA_PRACODAWCA
 ZDROWOTNA_ETAT_STAWKA = 0.09
 KUP_ETAT_ROCZNE = 250.0 * 12        # standardowe koszty uzyskania (3 000/rok)
 
+# --- Najem prywatnego majątku do spółki -------------------------------------
+# Czynsz = koszt spółki; u właściciela ryczałt od najmu prywatnego (bez ZUS
+# i bez składki zdrowotnej): 8,5% do 100 000 zł, 12,5% od nadwyżki.
+NAJEM_STAWKA_NISKA = 0.085
+NAJEM_PROG = 100_000
+NAJEM_STAWKA_WYSOKA = 0.125
+
 # --- Danina solidarnościowa -------------------------------------------------
 # 4% od nadwyżki dochodu ponad 1 mln zł. Dotyczy skali i liniowego;
 # NIE dotyczy ryczałtu ani dywidendy ze sp. z o.o.

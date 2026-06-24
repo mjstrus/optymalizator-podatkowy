@@ -211,6 +211,12 @@ def _ekstrakcja_osoby(zysk_dost: float, *, poziom_etatu: float, art_176: bool,
     }
 
 
+def _ryczalt_najmu(czynsz: float) -> float:
+    """Ryczałt od najmu prywatnego: 8,5% do 100 000 zł, 12,5% od nadwyżki."""
+    nadwyzka = max(0.0, czynsz - P.NAJEM_PROG)
+    return P.NAJEM_STAWKA_NISKA * (czynsz - nadwyzka) + P.NAJEM_STAWKA_WYSOKA * nadwyzka
+
+
 def _oblicz_spzoo(dane: DaneKlienta, dodatkowy_zysk: float = 0.0) -> WynikFormy:
     """Sp. z o.o. liczona przez ZOPTYMALIZOWANY miks wypłaty (nie 100% dywidendy):
     art. 176 KSH (bez ZUS/zdrow.) → powołanie zarządu (skala+9% zdrow.) →
@@ -230,6 +236,12 @@ def _oblicz_spzoo(dane: DaneKlienta, dodatkowy_zysk: float = 0.0) -> WynikFormy:
         osoby.append(o2)
         zysk -= o2["koszt_spolki"]
 
+    # Najem prywatnego majątku do spółki: koszt spółki, u właściciela ryczałt
+    # od najmu (bez ZUS i bez zdrowotnej). Najtańszy kanał na pierwszych 100 tys.
+    najem = max(0.0, min(dane.najem_do_spolki, zysk))
+    ryczalt_najmu = _ryczalt_najmu(najem)
+    zysk -= najem
+
     cit = max(0.0, P.CIT_STAWKA * zysk)
     zysk_po_cit = zysk - cit
     dywidenda = max(0.0, zysk_po_cit)               # pełna wypłata reszty
@@ -248,10 +260,12 @@ def _oblicz_spzoo(dane: DaneKlienta, dodatkowy_zysk: float = 0.0) -> WynikFormy:
         zus += P.SPZOO_JEDNOOSOBOWA_ZUS_ROCZNY
         zalozenia_jedno = "Jednoosobowa sp. z o.o.: doliczona zdrowotna i ZUS wspólnika."
 
-    podatek = cit + pit_dyw + pit_skala
+    podatek = cit + pit_dyw + pit_skala + ryczalt_najmu
     netto = zysk0 - zus - zdrowotna - podatek       # tożsamość (pełna wypłata)
 
     czesci = []
+    if najem > 0:
+        czesci.append(f"najem majątku {najem:,.0f} zł")
     if swiadczenia > 0:
         czesci.append(f"art. 176 KSH {swiadczenia:,.0f} zł")
     if powolanie > 0:
@@ -278,6 +292,7 @@ def _oblicz_spzoo(dane: DaneKlienta, dodatkowy_zysk: float = 0.0) -> WynikFormy:
         marginalna_stawka_etatu=(etat1.marginalna_stawka if etat1 else None),
         swiadczenia_art176=(round(swiadczenia, 2) if dane.art_176 else None),
         wyplata_powolanie=(round(powolanie, 2) if powolanie > 0 else None),
+        wyplata_najem=(round(najem, 2) if najem > 0 else None),
         wyplata_dywidenda=round(dywidenda, 2),
     )
 
