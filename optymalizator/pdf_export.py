@@ -24,6 +24,18 @@ SZARY = (90, 90, 90)
 AKCENT = (197, 160, 89)    # złoty akcent (rekomendacja)
 JASNY = (240, 243, 248)
 
+# Stały kolor na formę — spójny między wykresami.
+PALETA_FORM = {
+    "Skala": "#1b2d45",        # navy
+    "Liniowy": "#3a7ca5",      # niebieski
+    "Ryczałt": "#6b8f71",      # szałwiowy zielony
+    "Sp. z o.o.": "#c5a059",   # złoty
+}
+
+
+def _kolor_formy(nazwa: str) -> str:
+    return PALETA_FORM.get(nazwa, "#1b2d45")
+
 
 def _wykres_netto(wynik: WynikOptymalizacji) -> bytes | None:
     """Słupkowy wykres dochodu netto wg formy (rekomendacja wyróżniona)."""
@@ -36,9 +48,13 @@ def _wykres_netto(wynik: WynikOptymalizacji) -> bytes | None:
     formy = [f for f in wynik.formy if f.dostepnosc == Dostepnosc.DOSTEPNA]
     nazwy = [f.nazwa for f in formy]
     netto = [f.dochod_netto for f in formy]
-    kol = [(_h(AKCENT) if f.nazwa == wynik.werdykt else _h(NAVY_2)) for f in formy]
+    kol = [_kolor_formy(f.nazwa) for f in formy]
+    krawedz = [(_h(NAVY), 2.2) if f.nazwa == wynik.werdykt else ("none", 0)
+               for f in formy]
     fig, ax = plt.subplots(figsize=(7.2, 3.0))
-    bars = ax.bar(nazwy, netto, color=kol, width=0.6)
+    bars = ax.bar(nazwy, netto, color=kol, width=0.6,
+                  edgecolor=[k[0] for k in krawedz],
+                  linewidth=[k[1] for k in krawedz])
     ax.set_title("Dochód netto wg formy opodatkowania", fontsize=12,
                  color=_h(NAVY), fontweight="bold")
     ax.spines[["top", "right", "left"]].set_visible(False)
@@ -66,8 +82,8 @@ def _wykres_majatek(majatek) -> bytes | None:
     for p in majatek:
         y = [p.wartosci[r] for r in lata]
         akcent = p.rekomendowana
-        ax.plot(lata, y, marker="o", linewidth=2.4 if akcent else 1.3,
-                color=_h(AKCENT) if akcent else _h(NAVY_2),
+        ax.plot(lata, y, marker="o", markersize=7 if akcent else 5,
+                linewidth=3.2 if akcent else 1.8, color=_kolor_formy(p.forma),
                 zorder=3 if akcent else 2, label=p.forma)
     ax.set_title("Skumulowany dochód netto w czasie", fontsize=12,
                  color=_h(NAVY), fontweight="bold")
