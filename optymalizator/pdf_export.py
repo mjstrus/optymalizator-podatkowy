@@ -5,7 +5,9 @@ co czyni zawartość testowalną bez parsowania binarnego PDF.
 """
 from __future__ import annotations
 
+import datetime
 import os
+from io import BytesIO
 from pathlib import Path
 
 from fpdf import FPDF
@@ -19,6 +21,75 @@ from .narracja import Narracja
 NAVY = (13, 27, 42)        # #0d1b2a
 NAVY_2 = (27, 45, 69)      # #1b2d45
 SZARY = (90, 90, 90)
+AKCENT = (197, 160, 89)    # złoty akcent (rekomendacja)
+JASNY = (240, 243, 248)
+
+
+def _wykres_netto(wynik: WynikOptymalizacji) -> bytes | None:
+    """Słupkowy wykres dochodu netto wg formy (rekomendacja wyróżniona)."""
+    try:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+    except Exception:
+        return None
+    formy = [f for f in wynik.formy if f.dostepnosc == Dostepnosc.DOSTEPNA]
+    nazwy = [f.nazwa for f in formy]
+    netto = [f.dochod_netto for f in formy]
+    kol = [(_h(AKCENT) if f.nazwa == wynik.werdykt else _h(NAVY_2)) for f in formy]
+    fig, ax = plt.subplots(figsize=(7.2, 3.0))
+    bars = ax.bar(nazwy, netto, color=kol, width=0.6)
+    ax.set_title("Dochód netto wg formy opodatkowania", fontsize=12,
+                 color=_h(NAVY), fontweight="bold")
+    ax.spines[["top", "right", "left"]].set_visible(False)
+    ax.tick_params(left=False)
+    ax.set_yticks([])
+    for b, v in zip(bars, netto, strict=False):
+        ax.text(b.get_x() + b.get_width() / 2, v, f"{v:,.0f} zł".replace(",", " "),
+                ha="center", va="bottom", fontsize=9, color=_h(NAVY))
+    ax.margins(y=0.18)
+    return _png(fig)
+
+
+def _wykres_majatek(majatek) -> bytes | None:
+    """Liniowy wykres skumulowanego majątku 1/5/10 lat."""
+    try:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+    except Exception:
+        return None
+    if not majatek:
+        return None
+    lata = sorted(next(iter(majatek)).wartosci.keys())
+    fig, ax = plt.subplots(figsize=(7.2, 3.0))
+    for p in majatek:
+        y = [p.wartosci[r] for r in lata]
+        akcent = p.rekomendowana
+        ax.plot(lata, y, marker="o", linewidth=2.4 if akcent else 1.3,
+                color=_h(AKCENT) if akcent else _h(NAVY_2),
+                zorder=3 if akcent else 2, label=p.forma)
+    ax.set_title("Skumulowany dochód netto w czasie", fontsize=12,
+                 color=_h(NAVY), fontweight="bold")
+    ax.set_xticks(lata)
+    ax.set_xticklabels([f"{r} rok" if r == 1 else f"{r} lat" for r in lata])
+    ax.spines[["top", "right"]].set_visible(False)
+    ax.yaxis.set_major_formatter(
+        lambda v, _p: f"{v / 1e6:.1f} mln" if v >= 1e6 else f"{v / 1e3:.0f} tys.")
+    ax.legend(fontsize=8, frameon=False)
+    return _png(fig)
+
+
+def _png(fig) -> bytes:
+    import matplotlib.pyplot as plt
+    buf = BytesIO()
+    fig.savefig(buf, format="png", dpi=140, bbox_inches="tight")
+    plt.close(fig)
+    return buf.getvalue()
+
+
+def _h(rgb: tuple[int, int, int]) -> str:
+    return "#{:02x}{:02x}{:02x}".format(*rgb)
 
 # Font Unicode dołączony do repo (DejaVuSans) — działa na każdym systemie
 # (Windows/Linux/Streamlit Cloud) i ma pełen zestaw polskich znaków.
@@ -148,6 +219,7 @@ def _wiersze_tabeli(wynik: WynikOptymalizacji) -> list[dict]:
 class _Raport(FPDF):
     def __init__(self):
         super().__init__(orientation="P", unit="mm", format="A4")
+        self._cover = False
         self._unicode = os.path.exists(DEJAVU)
         if self._unicode:
             self.add_font("DejaVu", "", DEJAVU)
@@ -156,6 +228,54 @@ class _Raport(FPDF):
             self._font = "DejaVu"
         else:  # awaryjnie font core (latin-1) — polskie znaki zastąpione
             self._font = "Helvetica"
+
+    def okladka(self, wynik: WynikOptymalizacji) -> None:
+        """Strona tytułowa: gradient navy, tytuł, werdykt, data."""
+        self._cover = True
+        self.set_auto_page_break(False)        # tekst przy dole nie łamie strony
+        self.add_page()
+        # Pionowy gradient navy.
+        krokow = int(self.h)
+        for i in range(krokow):
+            t = i / krokow
+            r = int(NAVY[0] + (NAVY_2[0] - NAVY[0]) * t)
+            g = int(NAVY[1] + (NAVY_2[1] - NAVY[1]) * t)
+            b = int(NAVY[2] + (NAVY_2[2] - NAVY[2]) * t)
+            self.set_fill_color(r, g, b)
+            self.rect(0, i, self.w, 1.0, style="F")
+        # Złoty pasek akcentu.
+        self.set_fill_color(*AKCENT)
+        self.rect(0, 96, self.w, 1.2, style="F")
+        self.set_text_color(255, 255, 255)
+        self.set_xy(0, 104)
+        self.set_font(self._font, "B", 30)
+        self.cell(0, 16, self._txt("Analiza Optymalizacji"), align="C",
+                  new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        self.cell(0, 16, self._txt("Podatkowej 2026"), align="C",
+                  new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        self.ln(6)
+        self.set_font(self._font, "", 13)
+        self.set_text_color(169, 192, 224)
+        self.cell(0, 8, self._txt("Porównanie czterech form opodatkowania JDG"),
+                  align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        # Werdykt na okładce.
+        self.ln(10)
+        self.set_font(self._font, "B", 15)
+        self.set_text_color(*AKCENT)
+        self.cell(0, 9, self._txt(f"Rekomendacja: {wynik.werdykt}"), align="C",
+                  new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        # Stopka okładki.
+        self.set_xy(0, self.h - 30)
+        self.set_font(self._font, "B", 13)
+        self.set_text_color(255, 255, 255)
+        self.cell(0, 7, self._txt("Biuro Rachunkowe Abacus"), align="C",
+                  new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        self.set_font(self._font, "", 10)
+        self.set_text_color(169, 192, 224)
+        data = datetime.date.today().strftime("%d.%m.%Y")
+        self.cell(0, 6, self._txt(f"Dokument doradczy · {data}"), align="C")
+        self._cover = False
+        self.set_auto_page_break(True, margin=28)
 
     def _txt(self, s: str) -> str:
         # Emoji spoza fontu Arial → czytelny zamiennik (np. gwiazdka rekomendacji).
@@ -166,6 +286,8 @@ class _Raport(FPDF):
         return s.encode("latin-1", "replace").decode("latin-1")
 
     def header(self):
+        if self._cover:
+            return
         self.set_fill_color(*NAVY)
         self.rect(0, 0, self.w, 28, style="F")
         self.set_fill_color(*NAVY_2)
@@ -183,6 +305,8 @@ class _Raport(FPDF):
         self.set_text_color(0, 0, 0)
 
     def footer(self):
+        if self._cover:
+            return
         self.set_y(-22)
         self.set_draw_color(*NAVY_2)
         self.line(12, self.get_y(), self.w - 12, self.get_y())
@@ -199,16 +323,26 @@ def generuj_pdf(wynik: WynikOptymalizacji,
     """Wygeneruj brandowany PDF jako bytes."""
     sekcje = zbuduj_sekcje(wynik, narracja, rozbicie=rozbicie,
                            reinwestycja=reinwestycja, majatek=majatek, dane=dane)
+    # Wykresy wstrzykiwane po właściwych sekcjach.
+    wykresy = {"Tabela porównawcza form": _wykres_netto(wynik)}
+    if majatek:
+        wykresy["Skumulowany dochód netto (1 / 5 / 10 lat)"] = _wykres_majatek(majatek)
+
     pdf = _Raport()
     pdf.set_auto_page_break(auto=True, margin=28)
+    pdf.okladka(wynik)            # strona tytułowa
     pdf.add_page()
     pdf.set_left_margin(12)
     pdf.set_right_margin(12)
 
     for s in sekcje:
+        # Nagłówek sekcji ze złotym akcentem.
+        pdf.ln(3)
+        pdf.set_fill_color(*AKCENT)
+        pdf.rect(pdf.l_margin, pdf.get_y() + 1, 3, 6.5, style="F")
+        pdf.set_xy(pdf.l_margin + 5, pdf.get_y())
         pdf.set_font(pdf._font, "B", 13)
         pdf.set_text_color(*NAVY)
-        pdf.ln(2)
         pdf.cell(0, 8, pdf._txt(s["tytul"]), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.set_text_color(0, 0, 0)
         pdf.set_font(pdf._font, "", 10)
@@ -222,6 +356,12 @@ def generuj_pdf(wynik: WynikOptymalizacji,
                 pdf.multi_cell(0, 5.5, pdf._txt(f"-  {poz}"))
         elif s["typ"] == "tabela":
             _rysuj_tabele(pdf, s["tresc"], s.get("kolumny"), s.get("szer"))
+
+        # Wykres po danej sekcji.
+        png = wykresy.get(s["tytul"])
+        if png:
+            pdf.ln(2)
+            pdf.image(BytesIO(png), x=pdf.l_margin, w=186)
         pdf.ln(1)
 
     return bytes(pdf.output())
