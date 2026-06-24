@@ -313,6 +313,25 @@ _nota = UI.nota_majatek_spzoo(wynik)
 if _nota:
     st.info(_nota)
 
+# --- Porównanie wariantów (przed vs po) — do omawiania z klientem -----------
+_kol1, _kol2 = st.columns([1, 1])
+if _kol1.button("📌 Zapisz jako wariant bazowy", width="stretch"):
+    st.session_state["_bazowy"] = {
+        "netto": {f.nazwa: f.dochod_netto for f in wynik.formy},
+        "werdykt": wynik.werdykt,
+    }
+if st.session_state.get("_bazowy") and _kol2.button(
+        "🗑️ Wyczyść wariant bazowy", width="stretch"):
+    del st.session_state["_bazowy"]
+
+_bazowy = st.session_state.get("_bazowy")
+if _bazowy:
+    st.subheader("Porównanie wariantów (bazowy → obecny)")
+    st.dataframe(UI.wiersze_porownanie(_bazowy["netto"], wynik),
+                 width="stretch", hide_index=True)
+    if _bazowy["werdykt"] != wynik.werdykt:
+        st.success(f"Zmiana rekomendacji: {_bazowy['werdykt']} → {wynik.werdykt}.")
+
 # Założenia sp. z o.o. (jawne — R6)
 for f in wynik.formy:
     if f.zalozenia:

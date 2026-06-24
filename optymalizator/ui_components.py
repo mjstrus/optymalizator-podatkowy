@@ -62,6 +62,21 @@ def _tak_nie(v: bool) -> str:
     return "Tak" if v else "Nie"
 
 
+def wiersze_porownanie(bazowy_netto: dict, wynik: WynikOptymalizacji) -> list[dict]:
+    """Porównanie „przed vs po": wariant bazowy (snapshot) vs obecny, z różnicą."""
+    wiersze = []
+    for f in wynik.formy:
+        a = bazowy_netto.get(f.nazwa)
+        roznica = (f.dochod_netto - a) if a is not None else None
+        wiersze.append({
+            "Forma": ("⭐ " + f.nazwa) if f.nazwa == wynik.werdykt else f.nazwa,
+            "Wariant A (bazowy)": formatuj_pln(a) if a is not None else "—",
+            "Wariant B (obecny)": formatuj_pln(f.dochod_netto),
+            "Różnica": formatuj_pln_signed(roznica) if roznica is not None else "—",
+        })
+    return wiersze
+
+
 def nota_majatek_spzoo(wynik: WynikOptymalizacji) -> str | None:
     """Jeśli część zysku sp. z o.o. zostaje w spółce — wyjaśnij skład „dochodu
     netto" (kieszeń + zatrzymane), żeby było to widoczne, nie schowane."""
